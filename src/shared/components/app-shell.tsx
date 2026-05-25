@@ -22,8 +22,12 @@ const navigationItems: NavigationItem[] = [
 
 export function AppShell({
   children,
+  userEmail,
+  logoutAction,
 }: Readonly<{
   children: React.ReactNode;
+  userEmail?: string;
+  logoutAction: () => Promise<void>;
 }>) {
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
@@ -54,8 +58,18 @@ export function AppShell({
               BuildCost Manager
             </h1>
           </div>
-          <div className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600">
-            Χωρίς σύνδεση
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600">
+              {userEmail ?? "Χρήστης"}
+            </span>
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Αποσύνδεση
+              </button>
+            </form>
           </div>
         </header>
 
