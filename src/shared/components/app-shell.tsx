@@ -23,10 +23,12 @@ const navigationItems: NavigationItem[] = [
 export function AppShell({
   children,
   userEmail,
+  companyName,
   logoutAction,
 }: Readonly<{
   children: React.ReactNode;
   userEmail?: string;
+  companyName?: string;
   logoutAction: () => Promise<void>;
 }>) {
   return (
@@ -55,7 +57,7 @@ export function AppShell({
           <div>
             <p className="text-sm font-medium text-slate-500">Πίνακας εργασίας</p>
             <h1 className="text-lg font-semibold text-slate-950">
-              BuildCost Manager
+              {companyName ?? "BuildCost Manager"}
             </h1>
           </div>
           <div className="flex items-center gap-3">
