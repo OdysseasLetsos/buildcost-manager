@@ -3,6 +3,8 @@ import { AuthorizationError, NotFoundError } from "@/src/core/errors";
 import { getCurrentUser, requireUser } from "@/src/core/auth";
 import type { Database } from "@/src/integrations/supabase/types";
 
+export { createCompany } from "./actions";
+
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 type CompanyMember = Database["public"]["Tables"]["company_members"]["Row"];
 
@@ -25,6 +27,7 @@ export async function getCurrentCompany(): Promise<CurrentCompany | null> {
     .from("company_members")
     .select("*")
     .eq("user_id", user.id)
+    .eq("status", "active")
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -57,6 +60,7 @@ export async function requireCompanyMember(
     .select("*")
     .eq("company_id", companyId)
     .eq("user_id", user.id)
+    .eq("status", "active")
     .maybeSingle();
 
   if (error) {

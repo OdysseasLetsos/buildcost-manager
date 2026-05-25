@@ -20,6 +20,10 @@ function redirectWithMessage(path: string, key: "error" | "message", value: stri
   redirect(`${path}?${params.toString()}`);
 }
 
+function logAuthError(context: string, error: unknown): void {
+  console.error(`[auth:${context}] Supabase auth error`, error);
+}
+
 export async function login(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { email, password } = readCredentials(formData, "/login");
@@ -30,6 +34,7 @@ export async function login(formData: FormData): Promise<void> {
   });
 
   if (error) {
+    logAuthError("login", error);
     redirectWithMessage("/login", "error", "Δεν ήταν δυνατή η σύνδεση.");
   }
 
@@ -46,6 +51,7 @@ export async function register(formData: FormData): Promise<void> {
   });
 
   if (error) {
+    logAuthError("register", error);
     redirectWithMessage("/register", "error", "Δεν ήταν δυνατή η εγγραφή.");
   }
 
@@ -80,6 +86,7 @@ export async function requestPasswordReset(formData: FormData): Promise<void> {
   });
 
   if (error) {
+    logAuthError("password-reset", error);
     redirectWithMessage(
       "/forgot-password",
       "error",

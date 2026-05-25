@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/src/shared/components/app-shell";
 import { getCurrentUser, logout } from "@/src/core/auth";
+import { getCurrentCompany } from "@/src/core/tenants";
 
 export default async function AppLayout({
   children,
@@ -13,8 +14,18 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  const currentCompany = await getCurrentCompany();
+
+  if (!currentCompany) {
+    redirect("/onboarding/company");
+  }
+
   return (
-    <AppShell userEmail={user.email} logoutAction={logout}>
+    <AppShell
+      userEmail={user.email}
+      companyName={currentCompany.company.name}
+      logoutAction={logout}
+    >
       {children}
     </AppShell>
   );

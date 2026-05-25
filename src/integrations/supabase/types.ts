@@ -95,6 +95,7 @@ export type Database = {
           company_id: string;
           user_id: string;
           role_id: string;
+          status: string;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -104,14 +105,52 @@ export type Database = {
           company_id: string;
           user_id: string;
           role_id: string;
+          status?: string;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           role_id?: string;
+          status?: string;
           created_by?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      company_invitations: {
+        Row: {
+          id: string;
+          company_id: string;
+          email: string;
+          role: string;
+          token: string;
+          status: string;
+          invited_by: string | null;
+          expires_at: string | null;
+          accepted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          email: string;
+          role: string;
+          token: string;
+          status?: string;
+          invited_by?: string | null;
+          expires_at?: string | null;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+          role?: string;
+          token?: string;
+          status?: string;
+          invited_by?: string | null;
+          expires_at?: string | null;
+          accepted_at?: string | null;
         };
         Relationships: [];
       };
@@ -151,6 +190,28 @@ export type Database = {
           created_at?: string;
         };
         Update: never;
+        Relationships: [];
+      };
+      profiles: {
+        Row: {
+          id: string;
+          full_name: string | null;
+          avatar_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          full_name?: string | null;
+          avatar_url?: string | null;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       plans: {
@@ -199,7 +260,15 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_company_for_current_user: {
+        Args: {
+          company_name: string;
+          company_slug: string;
+        };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
