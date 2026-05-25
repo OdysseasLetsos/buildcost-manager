@@ -1,0 +1,17 @@
+export type FeatureCode =
+  | "projects"
+  | "employees"
+  | "monthly_periods"
+  | "daily_work"
+  | "payments"
+  | "ika"
+  | "materials"
+  | "expenses"
+  | "revenues"
+  | "project_summary"
+  | "reports_pdf"
+  | "reports_excel"
+  | "ai_invoice_import"
+  | "email_invoice_import"
+  | "advanced_analytics"
+  | string;
