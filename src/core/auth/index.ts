@@ -2,6 +2,8 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/integrations/supabase/server";
 import { AuthenticationError } from "@/src/core/errors";
 
+export { login, logout, register, requestPasswordReset } from "./actions";
+
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = await createClient();
   const {
