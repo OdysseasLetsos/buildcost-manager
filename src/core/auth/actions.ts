@@ -15,6 +15,16 @@ function readCredentials(formData: FormData, errorPath: string) {
   return { email, password };
 }
 
+function readSafeNextPath(formData: FormData): string {
+  const nextPath = String(formData.get("next") ?? "").trim();
+
+  if (!nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return "/dashboard";
+  }
+
+  return nextPath;
+}
+
 function redirectWithMessage(path: string, key: "error" | "message", value: string): never {
   const params = new URLSearchParams({ [key]: value });
   redirect(`${path}?${params.toString()}`);
@@ -27,6 +37,7 @@ function logAuthError(context: string, error: unknown): void {
 export async function login(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { email, password } = readCredentials(formData, "/login");
+  const nextPath = readSafeNextPath(formData);
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -38,12 +49,13 @@ export async function login(formData: FormData): Promise<void> {
     redirectWithMessage("/login", "error", "Δεν ήταν δυνατή η σύνδεση.");
   }
 
-  redirect("/dashboard");
+  redirect(nextPath);
 }
 
 export async function register(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { email, password } = readCredentials(formData, "/register");
+  const nextPath = readSafeNextPath(formData);
 
   const { error } = await supabase.auth.signUp({
     email,
@@ -55,11 +67,11 @@ export async function register(formData: FormData): Promise<void> {
     redirectWithMessage("/register", "error", "Δεν ήταν δυνατή η εγγραφή.");
   }
 
-  redirectWithMessage(
-    "/login",
-    "message",
-    "Η εγγραφή ολοκληρώθηκε. Μπορείτε να συνδεθείτε.",
-  );
+  const params = new URLSearchParams({
+    message: "Η εγγραφή ολοκληρώθηκε. Μπορείτε να συνδεθείτε.",
+    next: nextPath,
+  });
+  redirect(`/login?${params.toString()}`);
 }
 
 export async function logout(): Promise<void> {

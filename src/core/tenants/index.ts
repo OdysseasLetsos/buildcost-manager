@@ -3,7 +3,13 @@ import { AuthorizationError, NotFoundError } from "@/src/core/errors";
 import { getCurrentUser, requireUser } from "@/src/core/auth";
 import type { Database } from "@/src/integrations/supabase/types";
 
-export { createCompany } from "./actions";
+export {
+  acceptInvitation,
+  createCompany,
+  createInvitation,
+  disableMember,
+  updateMemberRole,
+} from "./actions";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 type CompanyMember = Database["public"]["Tables"]["company_members"]["Row"];
@@ -14,6 +20,9 @@ export type CurrentCompany = {
   company: Company;
   membership: CompanyMembership;
 };
+
+export type CompanyMemberListItem =
+  Database["public"]["Functions"]["list_company_members"]["Returns"][number];
 
 export async function getCurrentCompany(): Promise<CurrentCompany | null> {
   const user = await getCurrentUser();
@@ -82,4 +91,19 @@ export async function requireCurrentCompany(): Promise<CurrentCompany> {
   }
 
   return currentCompany;
+}
+
+export async function listCompanyMembers(
+  companyId: string,
+): Promise<CompanyMemberListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_company_members", {
+    target_company_id: companyId,
+  });
+
+  if (error) {
+    throw new AuthorizationError("Unable to load company members.");
+  }
+
+  return data ?? [];
 }

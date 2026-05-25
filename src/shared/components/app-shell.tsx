@@ -18,6 +18,7 @@ const navigationItems: NavigationItem[] = [
   { href: "/project-summary", label: "Σύνοψη Έργου" },
   { href: "/ai-invoices", label: "AI Τιμολόγια" },
   { href: "/reports", label: "Αναφορές" },
+  { href: "/settings/members", label: "Μέλη" },
 ];
 
 export function AppShell({

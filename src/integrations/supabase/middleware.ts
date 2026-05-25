@@ -16,6 +16,7 @@ const protectedRoutePrefixes = [
   "/project-summary",
   "/ai-invoices",
   "/reports",
+  "/settings",
 ];
 
 function isProtectedRoute(pathname: string): boolean {
