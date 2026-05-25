@@ -268,6 +268,52 @@ export type Database = {
         };
         Returns: string;
       };
+      accept_company_invitation: {
+        Args: {
+          invite_token: string;
+        };
+        Returns: string;
+      };
+      create_company_invitation: {
+        Args: {
+          target_company_id: string;
+          invite_email: string;
+          invite_role: string;
+          invite_token: string;
+          invite_expires_at: string;
+        };
+        Returns: {
+          id: string;
+          token: string;
+          expires_at: string;
+        }[];
+      };
+      disable_company_member: {
+        Args: {
+          target_membership_id: string;
+        };
+        Returns: undefined;
+      };
+      list_company_members: {
+        Args: {
+          target_company_id: string;
+        };
+        Returns: {
+          membership_id: string;
+          user_id: string;
+          email: string;
+          role: string;
+          status: string;
+          created_at: string;
+        }[];
+      };
+      update_company_member_role: {
+        Args: {
+          target_membership_id: string;
+          next_role: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

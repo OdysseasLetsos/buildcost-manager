@@ -1,1 +1,8 @@
-export type RoleCode = "owner" | "admin" | "member" | "viewer" | string;
+export type RoleCode =
+  | "owner"
+  | "admin"
+  | "office"
+  | "foreman"
+  | "member"
+  | "viewer"
+  | string;
