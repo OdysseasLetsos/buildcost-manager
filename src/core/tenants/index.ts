@@ -102,6 +102,13 @@ export async function listCompanyMembers(
   });
 
   if (error) {
+    console.error("[tenants:listCompanyMembers] Supabase error", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+
     throw new AuthorizationError("Unable to load company members.");
   }
 

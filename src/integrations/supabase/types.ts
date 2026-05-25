@@ -195,6 +195,7 @@ export type Database = {
       profiles: {
         Row: {
           id: string;
+          email: string | null;
           full_name: string | null;
           avatar_url: string | null;
           created_at: string;
@@ -202,12 +203,14 @@ export type Database = {
         };
         Insert: {
           id: string;
+          email?: string | null;
           full_name?: string | null;
           avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
+          email?: string | null;
           full_name?: string | null;
           avatar_url?: string | null;
           updated_at?: string;
@@ -301,7 +304,7 @@ export type Database = {
         Returns: {
           membership_id: string;
           user_id: string;
-          email: string;
+          email: string | null;
           role: string;
           status: string;
           created_at: string;
