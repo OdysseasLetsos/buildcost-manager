@@ -165,7 +165,9 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
 
                     return (
                       <tr key={member.membership_id}>
-                        <td className="px-6 py-4 text-slate-950">{member.email}</td>
+                        <td className="px-6 py-4 text-slate-950">
+                          {member.email ?? "Χωρίς email"}
+                        </td>
                         <td className="px-6 py-4 text-slate-700">
                           {roleLabels[member.role] ?? member.role}
                         </td>
