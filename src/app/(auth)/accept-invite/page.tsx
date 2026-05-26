@@ -1,6 +1,7 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/src/core/auth";
-import { acceptInvitation } from "@/src/core/tenants";
+import { acceptInvitation, normalizeInvitationToken } from "@/src/core/tenants";
 
 type AcceptInvitePageProps = {
   searchParams?: Promise<{
@@ -13,9 +14,14 @@ export default async function AcceptInvitePage({
   searchParams,
 }: AcceptInvitePageProps) {
   const params = await searchParams;
-  const token = params?.token ?? "";
+  const rawToken = params?.token ?? "";
+  const token = normalizeInvitationToken(rawToken);
   const user = await getCurrentUser();
   const nextPath = `/accept-invite?token=${encodeURIComponent(token)}`;
+
+  if (rawToken && token && rawToken !== token) {
+    redirect(nextPath);
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">

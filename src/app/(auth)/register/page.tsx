@@ -4,12 +4,16 @@ import { register } from "@/src/core/auth";
 type RegisterPageProps = {
   searchParams?: Promise<{
     error?: string;
+    message?: string;
     next?: string;
   }>;
 };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
+  const loginHref = params?.next
+    ? `/login?next=${encodeURIComponent(params.next)}`
+    : "/login";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">
@@ -23,6 +27,12 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
         {params?.error ? (
           <p className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {params.error}
+          </p>
+        ) : null}
+
+        {params?.message ? (
+          <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {params.message}
           </p>
         ) : null}
 
@@ -62,7 +72,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
         <p className="mt-6 text-sm text-slate-600">
           Έχετε ήδη λογαριασμό;{" "}
-          <Link href="/login" className="font-medium text-blue-800 hover:text-blue-950">
+          <Link href={loginHref} className="font-medium text-blue-800 hover:text-blue-950">
             Σύνδεση
           </Link>
         </p>
