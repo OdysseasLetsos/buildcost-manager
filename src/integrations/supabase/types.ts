@@ -192,6 +192,54 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      projects: {
+        Row: {
+          id: string;
+          company_id: string;
+          code: string;
+          name: string;
+          client_name: string | null;
+          location: string | null;
+          status: string;
+          budget_amount: number | null;
+          start_date: string | null;
+          end_date: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          code: string;
+          name: string;
+          client_name?: string | null;
+          location?: string | null;
+          status?: string;
+          budget_amount?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          name?: string;
+          client_name?: string | null;
+          location?: string | null;
+          status?: string;
+          budget_amount?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
