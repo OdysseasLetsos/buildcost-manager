@@ -6,6 +6,11 @@ import { requireUser } from "@/src/core/auth";
 import { writeAuditLog } from "@/src/core/audit";
 import { createClient } from "@/src/integrations/supabase/server";
 import type { Database } from "@/src/integrations/supabase/types";
+import {
+  getDefaultRouteForRole,
+  invalidInvitationMessage,
+  normalizeInvitationToken,
+} from "./invitations";
 
 const allowedInviteRoles = ["admin", "office", "foreman", "viewer"] as const;
 
@@ -30,8 +35,8 @@ function buildSlug(name: string): string {
   return `${baseSlug || "company"}-${randomUUID().slice(0, 8)}`;
 }
 
-function redirectWithError(message: string): never {
-  const params = new URLSearchParams({ error: message });
+function redirectCreateCompanyWithError(message: string): never {
+  const params = new URLSearchParams({ mode: "create", error: message });
   redirect(`/onboarding/company?${params.toString()}`);
 }
 
@@ -40,12 +45,36 @@ function redirectMembersWithError(message: string): never {
   redirect(`/settings/members?${params.toString()}`);
 }
 
+function logSupabaseError(context: string, error: {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+} | null): void {
+  console.error(`[${context}] Supabase error`, {
+    message: error?.message,
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+  });
+}
+
 function isInviteRole(role: string): role is InviteRole {
   return allowedInviteRoles.includes(role as InviteRole);
 }
 
 function createInviteToken(): string {
   return randomBytes(32).toString("base64url");
+}
+
+function redirectAcceptInviteWithError(token: string, message: string): never {
+  const params = new URLSearchParams({ error: message });
+
+  if (token) {
+    params.set("token", token);
+  }
+
+  redirect(`/accept-invite?${params.toString()}`);
 }
 
 async function requireCurrentCompanyForMemberManagement() {
@@ -95,7 +124,7 @@ export async function createCompany(formData: FormData): Promise<void> {
   const name = String(formData.get("name") ?? "").trim();
 
   if (!name) {
-    redirectWithError("Συμπληρώστε το όνομα της εταιρείας.");
+    redirectCreateCompanyWithError("Συμπληρώστε το όνομα της εταιρείας.");
   }
 
   const supabase = await createClient();
@@ -108,7 +137,8 @@ export async function createCompany(formData: FormData): Promise<void> {
   );
 
   if (error || !companyId) {
-    redirectWithError("Δεν ήταν δυνατή η δημιουργία της εταιρείας.");
+    logSupabaseError("tenants:createCompany", error);
+    redirectCreateCompanyWithError("Δεν ήταν δυνατή η δημιουργία της εταιρείας.");
   }
 
   await writeAuditLog({
@@ -166,13 +196,23 @@ export async function createInvitation(formData: FormData): Promise<void> {
   redirect(`/settings/members?${params.toString()}`);
 }
 
-export async function acceptInvitation(formData: FormData): Promise<void> {
-  await requireUser();
-
-  const token = String(formData.get("token") ?? "").trim();
+export async function openInvitation(formData: FormData): Promise<void> {
+  const token = normalizeInvitationToken(formData.get("token"));
 
   if (!token) {
-    redirect("/accept-invite?error=missing-token");
+    redirectAcceptInviteWithError("", "Ο σύνδεσμος πρόσκλησης δεν είναι έγκυρος.");
+  }
+
+  redirect(`/accept-invite?token=${encodeURIComponent(token)}`);
+}
+
+export async function acceptInvitation(formData: FormData): Promise<void> {
+  const user = await requireUser();
+
+  const token = normalizeInvitationToken(formData.get("token"));
+
+  if (!token) {
+    redirectAcceptInviteWithError("", "Ο σύνδεσμος πρόσκλησης δεν είναι έγκυρος.");
   }
 
   const supabase = await createClient();
@@ -184,12 +224,15 @@ export async function acceptInvitation(formData: FormData): Promise<void> {
   );
 
   if (error || !companyId) {
-    console.error("[members:accept-invitation] Supabase error", error);
-    const params = new URLSearchParams({
-      token,
-      error: "Δεν ήταν δυνατή η αποδοχή της πρόσκλησης.",
+    console.error("[members:accept-invitation] Supabase error", {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      normalizedTokenLength: token.length,
     });
-    redirect(`/accept-invite?${params.toString()}`);
+
+    redirectAcceptInviteWithError(token, invalidInvitationMessage);
   }
 
   await writeAuditLog({
@@ -199,7 +242,41 @@ export async function acceptInvitation(formData: FormData): Promise<void> {
     metadata: {},
   });
 
-  redirect("/dashboard");
+  const { data: membership, error: membershipError } = await supabase
+    .from("company_members")
+    .select("role_id")
+    .eq("company_id", companyId)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (membershipError) {
+    console.error("[members:accept-invitation:membership] Supabase error", {
+      message: membershipError.message,
+      code: membershipError.code,
+      details: membershipError.details,
+      hint: membershipError.hint,
+    });
+  }
+
+  const { data: role, error: roleError } = membership?.role_id
+    ? await supabase
+        .from("roles")
+        .select("code")
+        .eq("id", membership.role_id)
+        .maybeSingle()
+    : { data: null, error: null };
+
+  if (roleError) {
+    console.error("[members:accept-invitation:role] Supabase error", {
+      message: roleError.message,
+      code: roleError.code,
+      details: roleError.details,
+      hint: roleError.hint,
+    });
+  }
+
+  redirect(getDefaultRouteForRole(role?.code));
 }
 
 export async function updateMemberRole(formData: FormData): Promise<void> {

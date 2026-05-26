@@ -11,6 +11,9 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
+  const registerHref = params?.next
+    ? `/register?next=${encodeURIComponent(params.next)}`
+    : "/register";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">
@@ -67,7 +70,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </form>
 
         <div className="mt-6 flex items-center justify-between text-sm">
-          <Link href="/register" className="font-medium text-blue-800 hover:text-blue-950">
+          <Link href={registerHref} className="font-medium text-blue-800 hover:text-blue-950">
             Δημιουργία λογαριασμού
           </Link>
           <Link

@@ -8,8 +8,14 @@ export {
   createCompany,
   createInvitation,
   disableMember,
+  openInvitation,
   updateMemberRole,
 } from "./actions";
+export {
+  getDefaultRouteForRole,
+  invalidInvitationMessage,
+  normalizeInvitationToken,
+} from "./invitations";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 type CompanyMember = Database["public"]["Tables"]["company_members"]["Row"];

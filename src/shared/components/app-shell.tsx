@@ -1,35 +1,21 @@
 import Link from "next/link";
 
-type NavigationItem = {
+export type NavigationItem = {
   href: string;
   label: string;
 };
-
-const navigationItems: NavigationItem[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/projects", label: "Έργα" },
-  { href: "/months", label: "Μήνες" },
-  { href: "/daily-work", label: "Ημερήσια Εργασία" },
-  { href: "/payments", label: "Πληρωμές" },
-  { href: "/ika", label: "ΙΚΑ" },
-  { href: "/materials", label: "Υλικά" },
-  { href: "/expenses", label: "Έξοδα" },
-  { href: "/revenues", label: "Έσοδα" },
-  { href: "/project-summary", label: "Σύνοψη Έργου" },
-  { href: "/ai-invoices", label: "AI Τιμολόγια" },
-  { href: "/reports", label: "Αναφορές" },
-  { href: "/settings/members", label: "Μέλη" },
-];
 
 export function AppShell({
   children,
   userEmail,
   companyName,
+  navigationItems,
   logoutAction,
 }: Readonly<{
   children: React.ReactNode;
   userEmail?: string;
   companyName?: string;
+  navigationItems: NavigationItem[];
   logoutAction: () => Promise<void>;
 }>) {
   return (

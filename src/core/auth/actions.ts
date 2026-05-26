@@ -3,9 +3,14 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/src/integrations/supabase/server";
+import {
+  getPostAuthRedirectPath,
+  normalizeEmail,
+  readSafeNextPath,
+} from "./redirects";
 
 function readCredentials(formData: FormData, errorPath: string) {
-  const email = String(formData.get("email") ?? "").trim();
+  const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
@@ -15,14 +20,8 @@ function readCredentials(formData: FormData, errorPath: string) {
   return { email, password };
 }
 
-function readSafeNextPath(formData: FormData): string {
-  const nextPath = String(formData.get("next") ?? "").trim();
-
-  if (!nextPath.startsWith("/") || nextPath.startsWith("//")) {
-    return "/dashboard";
-  }
-
-  return nextPath;
+function readNextPath(formData: FormData): string {
+  return readSafeNextPath(String(formData.get("next") ?? ""));
 }
 
 function redirectWithMessage(path: string, key: "error" | "message", value: string): never {
@@ -34,10 +33,17 @@ function logAuthError(context: string, error: unknown): void {
   console.error(`[auth:${context}] Supabase auth error`, error);
 }
 
+function isInvalidCredentialsError(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === "invalid_credentials" ||
+    error.message?.toLowerCase().includes("invalid login credentials") === true
+  );
+}
+
 export async function login(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { email, password } = readCredentials(formData, "/login");
-  const nextPath = readSafeNextPath(formData);
+  const nextPath = readNextPath(formData);
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -46,20 +52,33 @@ export async function login(formData: FormData): Promise<void> {
 
   if (error) {
     logAuthError("login", error);
-    redirectWithMessage("/login", "error", "Δεν ήταν δυνατή η σύνδεση.");
+    redirectWithMessage(
+      "/login",
+      "error",
+      isInvalidCredentialsError(error)
+        ? "Λάθος email ή κωδικός πρόσβασης. Αν μόλις κάνατε εγγραφή, ελέγξτε αν χρειάζεται επιβεβαίωση email."
+        : "Δεν ήταν δυνατή η σύνδεση.",
+    );
   }
 
-  redirect(nextPath);
+  redirect(await getPostAuthRedirectPath(supabase, nextPath));
 }
 
 export async function register(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { email, password } = readCredentials(formData, "/register");
-  const nextPath = readSafeNextPath(formData);
+  const nextPath = readNextPath(formData);
+  const origin = (await headers()).get("origin") ?? "";
+  const callbackParams = new URLSearchParams({ next: nextPath });
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: origin
+        ? `${origin}/auth/callback?${callbackParams.toString()}`
+        : undefined,
+    },
   });
 
   if (error) {
@@ -67,8 +86,12 @@ export async function register(formData: FormData): Promise<void> {
     redirectWithMessage("/register", "error", "Δεν ήταν δυνατή η εγγραφή.");
   }
 
+  if (data.session) {
+    redirect(await getPostAuthRedirectPath(supabase, nextPath));
+  }
+
   const params = new URLSearchParams({
-    message: "Η εγγραφή ολοκληρώθηκε. Μπορείτε να συνδεθείτε.",
+    message: "Η εγγραφή ολοκληρώθηκε. Ελέγξτε το email σας για επιβεβαίωση.",
     next: nextPath,
   });
   redirect(`/login?${params.toString()}`);
@@ -82,7 +105,7 @@ export async function logout(): Promise<void> {
 
 export async function requestPasswordReset(formData: FormData): Promise<void> {
   const supabase = await createClient();
-  const email = String(formData.get("email") ?? "").trim();
+  const email = normalizeEmail(formData.get("email"));
 
   if (!email) {
     redirectWithMessage(
@@ -94,7 +117,7 @@ export async function requestPasswordReset(formData: FormData): Promise<void> {
 
   const origin = (await headers()).get("origin") ?? "";
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: origin ? `${origin}/login` : undefined,
+    redirectTo: origin ? `${origin}/auth/callback?next=/login` : undefined,
   });
 
   if (error) {
