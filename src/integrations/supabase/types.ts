@@ -234,6 +234,48 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      monthly_periods: {
+        Row: {
+          id: string;
+          company_id: string;
+          month_key: string;
+          starts_on: string;
+          ends_on: string;
+          is_locked: boolean;
+          status: string;
+          locked_at: string | null;
+          locked_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          month_key: string;
+          starts_on: string;
+          ends_on: string;
+          is_locked?: boolean;
+          status?: string;
+          locked_at?: string | null;
+          locked_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          month_key?: string;
+          starts_on?: string;
+          ends_on?: string;
+          is_locked?: boolean;
+          status?: string;
+          locked_at?: string | null;
+          locked_by?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       projects: {
         Row: {
           id: string;
