@@ -30,6 +30,7 @@ export async function getDashboardMonthlyPeriods(
 
   return {
     latestOpenMonth: openMonths[0] ?? null,
+    selectedMonth: openMonths[0] ?? monthlyPeriods[0] ?? null,
     openMonths: openMonths.length,
     lockedMonths: monthlyPeriods.filter((period) => period.status === "locked").length,
     latestMonthlyPeriods: monthlyPeriods.slice(0, 5),
