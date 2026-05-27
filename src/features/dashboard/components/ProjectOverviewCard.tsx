@@ -1,4 +1,4 @@
-import type { DashboardProject } from "../types";
+import type { DashboardDailyWorkProjectTotals, DashboardProject } from "../types";
 
 const statusLabels: Record<string, string> = {
   active: "Ενεργό",
@@ -12,10 +12,16 @@ const currencyFormatter = new Intl.NumberFormat("el-GR", {
   currency: "EUR",
 });
 
+const numberFormatter = new Intl.NumberFormat("el-GR", {
+  maximumFractionDigits: 2,
+});
+
 export function ProjectOverviewCard({
   project,
+  workTotals,
 }: Readonly<{
   project: DashboardProject;
+  workTotals?: DashboardDailyWorkProjectTotals;
 }>) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:shadow-md">
@@ -55,6 +61,38 @@ export function ProjectOverviewCard({
           </dd>
         </div>
       </dl>
+
+      <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+          Ημερήσια Εργασία
+        </p>
+        <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <dt className="text-slate-500">Ώρες</dt>
+            <dd className="font-semibold text-slate-950">
+              {numberFormatter.format(workTotals?.totalHours ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Υπερωρίες</dt>
+            <dd className="font-semibold text-slate-950">
+              {numberFormatter.format(workTotals?.totalOvertimeHours ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Έξοδα</dt>
+            <dd className="font-semibold text-slate-950">
+              {currencyFormatter.format(workTotals?.totalExpenseAmount ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Κόστος</dt>
+            <dd className="font-semibold text-slate-950">
+              {currencyFormatter.format(workTotals?.estimatedLaborCost ?? 0)}
+            </dd>
+          </div>
+        </dl>
+      </div>
     </article>
   );
 }

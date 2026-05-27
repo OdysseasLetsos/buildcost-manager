@@ -13,7 +13,7 @@ export type DashboardProject = Pick<
 
 export type DashboardEmployee = Pick<
   Database["public"]["Tables"]["employees"]["Row"],
-  "id" | "employee_type" | "active"
+  "id" | "full_name" | "employee_type" | "daily_rate" | "hourly_rate" | "active"
 >;
 
 export type DashboardMonthlyPeriod = Pick<
@@ -42,9 +42,51 @@ export type DashboardEmployeeStats = {
 
 export type DashboardMonthlyPeriodStats = {
   latestOpenMonth: DashboardMonthlyPeriod | null;
+  selectedMonth: DashboardMonthlyPeriod | null;
   openMonths: number;
   lockedMonths: number;
   latestMonthlyPeriods: DashboardMonthlyPeriod[];
+};
+
+export type DashboardDailyWorkProjectTotals = {
+  projectId: string;
+  totalEntries: number;
+  totalHours: number;
+  totalOvertimeHours: number;
+  totalExpenseAmount: number;
+  estimatedLaborCost: number;
+};
+
+export type DashboardRecentDailyWorkEntry = {
+  id: string;
+  workDate: string;
+  employeeName: string;
+  projectCode: string;
+  projectName: string;
+  hours: number;
+  overtimeHours: number;
+  expenseAmount: number;
+};
+
+export type DashboardMonthlyWorkTotal = {
+  monthKey: string;
+  totalEntries: number;
+  totalHours: number;
+  totalOvertimeHours: number;
+  totalExpenseAmount: number;
+  estimatedLaborCost: number;
+};
+
+export type DashboardDailyWorkStats = {
+  selectedMonth: DashboardMonthlyPeriod | null;
+  totalEntries: number;
+  totalHours: number;
+  totalOvertimeHours: number;
+  totalExpenseAmount: number;
+  estimatedLaborCost: number;
+  projectTotals: DashboardDailyWorkProjectTotals[];
+  recentEntries: DashboardRecentDailyWorkEntry[];
+  monthlyTotals: DashboardMonthlyWorkTotal[];
 };
 
 export type DashboardSummaryMetric = {

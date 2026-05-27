@@ -1,12 +1,18 @@
 import Link from "next/link";
-import type { DashboardProject } from "../types";
+import type { DashboardDailyWorkProjectTotals, DashboardProject } from "../types";
 import { ProjectOverviewCard } from "./ProjectOverviewCard";
 
 export function ActiveProjectsSection({
   projects,
+  projectTotals,
 }: Readonly<{
   projects: DashboardProject[];
+  projectTotals: DashboardDailyWorkProjectTotals[];
 }>) {
+  const totalsByProjectId = new Map(
+    projectTotals.map((totals) => [totals.projectId, totals]),
+  );
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm shadow-slate-200/60">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -27,7 +33,11 @@ export function ActiveProjectsSection({
       {projects.length > 0 ? (
         <div className="mt-5 grid gap-4 xl:grid-cols-2">
           {projects.map((project) => (
-            <ProjectOverviewCard key={project.id} project={project} />
+            <ProjectOverviewCard
+              key={project.id}
+              project={project}
+              workTotals={totalsByProjectId.get(project.id)}
+            />
           ))}
         </div>
       ) : (
@@ -36,8 +46,8 @@ export function ActiveProjectsSection({
             Δεν υπάρχουν ενεργά έργα
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-            Δημιουργήστε έργα για να εμφανίζονται εδώ οι βασικές πληροφορίες και
-            η παρακολούθησή τους.
+            Δημιουργήστε έργα για να εμφανίζονται εδώ οι βασικές πληροφορίες
+            και η παρακολούθησή τους.
           </p>
           <Link
             href="/projects"

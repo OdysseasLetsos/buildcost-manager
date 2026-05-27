@@ -8,6 +8,7 @@ import { MonthlyChartPlaceholder } from "@/src/features/dashboard/components/Mon
 import { MonthlyPeriodsOverviewSection } from "@/src/features/dashboard/components/MonthlyPeriodsOverviewSection";
 import { NotificationsPlaceholder } from "@/src/features/dashboard/components/NotificationsPlaceholder";
 import { RecentActivityPlaceholder } from "@/src/features/dashboard/components/RecentActivityPlaceholder";
+import { getDashboardDailyWork } from "@/src/features/dashboard/services/get-dashboard-daily-work";
 import { getDashboardEmployees } from "@/src/features/dashboard/services/get-dashboard-employees";
 import { getDashboardMonthlyPeriods } from "@/src/features/dashboard/services/get-dashboard-monthly-periods";
 import { getDashboardProjects } from "@/src/features/dashboard/services/get-dashboard-projects";
@@ -26,9 +27,13 @@ export default async function DashboardPage() {
     getDashboardEmployees(companyId),
     getDashboardMonthlyPeriods(companyId),
   ]);
+  const dailyWorkStats = await getDashboardDailyWork(
+    companyId,
+    monthlyPeriodStats.selectedMonth,
+  );
 
-  // TODO: Wire financial cards to revenues, expenses, payments, materials,
-  // daily work and IKA modules when those business modules are implemented.
+  // TODO: Wire financial cards to revenues, expenses, payments, materials and
+  // IKA modules when those business modules are implemented.
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/60">
@@ -54,14 +59,18 @@ export default async function DashboardPage() {
         projectStats={projectStats}
         employeeStats={employeeStats}
         monthlyPeriodStats={monthlyPeriodStats}
+        dailyWorkStats={dailyWorkStats}
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
-        <ActiveProjectsSection projects={projectStats.latestActiveProjects} />
+        <ActiveProjectsSection
+          projects={projectStats.latestActiveProjects}
+          projectTotals={dailyWorkStats.projectTotals}
+        />
 
         <div className="space-y-6">
           <NotificationsPlaceholder />
-          <RecentActivityPlaceholder />
+          <RecentActivityPlaceholder entries={dailyWorkStats.recentEntries} />
         </div>
       </div>
 
@@ -70,7 +79,7 @@ export default async function DashboardPage() {
         <MonthlyPeriodsOverviewSection monthlyPeriodStats={monthlyPeriodStats} />
       </div>
 
-      <MonthlyChartPlaceholder />
+      <MonthlyChartPlaceholder monthlyTotals={dailyWorkStats.monthlyTotals} />
     </div>
   );
 }

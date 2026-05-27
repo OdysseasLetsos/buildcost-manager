@@ -7,7 +7,7 @@ export async function getDashboardEmployees(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("employees")
-    .select("id, employee_type, active")
+    .select("id, full_name, employee_type, daily_rate, hourly_rate, active")
     .eq("company_id", companyId);
 
   if (error) {

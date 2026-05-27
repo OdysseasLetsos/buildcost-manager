@@ -1,4 +1,5 @@
 import type {
+  DashboardDailyWorkStats,
   DashboardEmployeeStats,
   DashboardMonthlyPeriodStats,
   DashboardProjectStats,
@@ -12,14 +13,25 @@ const toneClassNames: Record<DashboardSummaryMetric["tone"], string> = {
   slate: "border-slate-100 bg-slate-50 text-slate-700",
 };
 
+const currencyFormatter = new Intl.NumberFormat("el-GR", {
+  style: "currency",
+  currency: "EUR",
+});
+
+const numberFormatter = new Intl.NumberFormat("el-GR", {
+  maximumFractionDigits: 2,
+});
+
 export function DashboardSummaryCards({
   projectStats,
   employeeStats,
   monthlyPeriodStats,
+  dailyWorkStats,
 }: Readonly<{
   projectStats: DashboardProjectStats;
   employeeStats: DashboardEmployeeStats;
   monthlyPeriodStats: DashboardMonthlyPeriodStats;
+  dailyWorkStats: DashboardDailyWorkStats;
 }>) {
   const metrics: DashboardSummaryMetric[] = [
     {
@@ -36,44 +48,49 @@ export function DashboardSummaryCards({
     },
     {
       label: "Τρέχων Μήνας",
-      value: monthlyPeriodStats.latestOpenMonth?.month_key ?? "-",
-      helper: "Τελευταίος ανοιχτός μήνας.",
+      value: monthlyPeriodStats.selectedMonth?.month_key ?? "-",
+      helper: monthlyPeriodStats.latestOpenMonth
+        ? "Τελευταίος ανοιχτός μήνας."
+        : "Δεν υπάρχει ανοιχτός μήνας.",
       tone: "emerald",
+    },
+    {
+      label: "Σύνολο Ωρών",
+      value: numberFormatter.format(dailyWorkStats.totalHours),
+      helper: `${dailyWorkStats.totalEntries} καταχωρήσεις στον επιλεγμένο μήνα.`,
+      tone: "blue",
+    },
+    {
+      label: "Υπερωρίες",
+      value: numberFormatter.format(dailyWorkStats.totalOvertimeHours),
+      helper: "Πραγματικές υπερωρίες από ημερήσια εργασία.",
+      tone: "amber",
+    },
+    {
+      label: "Έξοδα Εργαζομένων",
+      value: currencyFormatter.format(dailyWorkStats.totalExpenseAmount),
+      helper: "Ποσά εξόδων από ημερήσιες καταχωρήσεις.",
+      tone: "emerald",
+    },
+    {
+      label: "Εκτιμώμενο Κόστος Εργασίας",
+      value: currencyFormatter.format(dailyWorkStats.estimatedLaborCost),
+      helper: "Με βάση ωρομίσθιο ή ημερομίσθιο / 8.",
+      tone: "amber",
     },
     {
       label: "Κλειδωμένοι Μήνες",
       value: String(monthlyPeriodStats.lockedMonths),
       helper: `${monthlyPeriodStats.openMonths} ανοιχτοί μήνες.`,
-      tone: "amber",
+      tone: "slate",
     },
   ];
 
-  // TODO: Connect these financial placeholders after Daily Work, Payments,
-  // Expenses, Revenues, Materials and IKA modules are implemented.
-  const financialPlaceholders: DashboardSummaryMetric[] = [
-    {
-      label: "Σύνολο Εσόδων",
-      value: "€0,00",
-      helper: "Placeholder μέχρι να υλοποιηθούν τα έσοδα.",
-      tone: "emerald",
-    },
-    {
-      label: "Σύνολο Εξόδων",
-      value: "€0,00",
-      helper: "Placeholder για έξοδα, υλικά, πληρωμές και ΙΚΑ.",
-      tone: "amber",
-    },
-    {
-      label: "Κέρδος Μήνα",
-      value: "€0,00",
-      helper: "Placeholder μέχρι να υπάρχουν οικονομικές κινήσεις.",
-      tone: "blue",
-    },
-  ];
-
+  // TODO: Real revenue, expense and profit totals require the Revenues,
+  // Expenses, Payments, Materials and IKA modules.
   return (
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {[...metrics, ...financialPlaceholders].map((metric) => (
+      {metrics.map((metric) => (
         <article
           key={metric.label}
           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60"
