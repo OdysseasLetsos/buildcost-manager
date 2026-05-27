@@ -154,6 +154,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      daily_work_entries: {
+        Row: {
+          id: string;
+          company_id: string;
+          month_id: string;
+          employee_id: string;
+          project_id: string;
+          work_date: string;
+          hours: number;
+          overtime_hours: number;
+          expense_amount: number;
+          expense_description: string | null;
+          work_description: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          month_id: string;
+          employee_id: string;
+          project_id: string;
+          work_date: string;
+          hours?: number;
+          overtime_hours?: number;
+          expense_amount?: number;
+          expense_description?: string | null;
+          work_description?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          month_id?: string;
+          employee_id?: string;
+          project_id?: string;
+          work_date?: string;
+          hours?: number;
+          overtime_hours?: number;
+          expense_amount?: number;
+          expense_description?: string | null;
+          work_description?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       employees: {
         Row: {
           id: string;
