@@ -1,17 +1,15 @@
 import { createClient } from "@/src/integrations/supabase/server";
-import type { DashboardProject } from "../types";
+import type { DashboardProject, DashboardProjectStats } from "../types";
 
 export async function getDashboardProjects(
   companyId: string,
-): Promise<DashboardProject[]> {
+): Promise<DashboardProjectStats> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("projects")
     .select("id, code, name, client_name, location, status, budget_amount")
     .eq("company_id", companyId)
-    .in("status", ["active", "in_progress"])
-    .order("created_at", { ascending: false })
-    .limit(6);
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("[dashboard:getDashboardProjects] Supabase error", {
@@ -24,5 +22,19 @@ export async function getDashboardProjects(
     throw new Error("Unable to load dashboard projects.");
   }
 
-  return data ?? [];
+  const projects = (data ?? []) as DashboardProject[];
+  const activeProjects = projects.filter((project) =>
+    ["active", "in_progress"].includes(project.status),
+  );
+  const latestActiveProjects = activeProjects.slice(0, 6);
+
+  return {
+    totalProjects: projects.length,
+    activeProjects: activeProjects.length,
+    completedProjects: projects.filter((project) => project.status === "completed")
+      .length,
+    archivedProjects: projects.filter((project) => project.status === "archived")
+      .length,
+    latestActiveProjects,
+  };
 }
