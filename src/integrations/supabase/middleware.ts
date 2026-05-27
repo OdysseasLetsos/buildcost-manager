@@ -6,6 +6,7 @@ import type { Database } from "./types";
 const protectedRoutePrefixes = [
   "/dashboard",
   "/projects",
+  "/employees",
   "/months",
   "/daily-work",
   "/payments",

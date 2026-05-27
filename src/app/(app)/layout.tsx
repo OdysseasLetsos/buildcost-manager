@@ -29,6 +29,12 @@ const appNavigationItems: AppNavigationItem[] = [
     featureCode: "projects",
   },
   {
+    href: "/employees",
+    label: "Εργαζόμενοι",
+    allowedRoles: ["owner", "admin", "office", "foreman", "viewer"],
+    featureCode: "employees",
+  },
+  {
     href: "/months",
     label: "Μήνες",
     allowedRoles: ["owner", "admin"],

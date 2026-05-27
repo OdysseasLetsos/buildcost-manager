@@ -154,6 +154,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      employees: {
+        Row: {
+          id: string;
+          company_id: string;
+          full_name: string;
+          employee_type: string;
+          daily_rate: number | null;
+          hourly_rate: number | null;
+          active: boolean;
+          notes: string | null;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          full_name: string;
+          employee_type?: string;
+          daily_rate?: number | null;
+          hourly_rate?: number | null;
+          active?: boolean;
+          notes?: string | null;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          full_name?: string;
+          employee_type?: string;
+          daily_rate?: number | null;
+          hourly_rate?: number | null;
+          active?: boolean;
+          notes?: string | null;
+          status?: string;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       features: {
         Row: {
           id: string;
