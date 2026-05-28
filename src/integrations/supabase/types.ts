@@ -205,6 +205,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      employee_payments: {
+        Row: {
+          id: string;
+          company_id: string;
+          month_id: string;
+          employee_id: string;
+          payment_date: string;
+          amount: number;
+          payment_method: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          month_id: string;
+          employee_id: string;
+          payment_date: string;
+          amount: number;
+          payment_method: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          month_id?: string;
+          employee_id?: string;
+          payment_date?: string;
+          amount?: number;
+          payment_method?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_ika: {
+        Row: {
+          id: string;
+          company_id: string;
+          month_id: string;
+          employee_id: string;
+          ika_amount: number;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          month_id: string;
+          employee_id: string;
+          ika_amount: number;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          month_id?: string;
+          employee_id?: string;
+          ika_amount?: number;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       employees: {
         Row: {
           id: string;
