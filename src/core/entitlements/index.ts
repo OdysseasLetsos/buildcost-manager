@@ -42,6 +42,13 @@ export async function canUseFeature(
     .single();
 
   if (companyError || !company?.plan_id) {
+    console.warn("[entitlements:canUseFeature] Company has no active plan", {
+      companyId,
+      featureCode,
+      message: companyError?.message,
+      code: companyError?.code,
+    });
+
     return false;
   }
 
