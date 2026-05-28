@@ -399,6 +399,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      materials: {
+        Row: {
+          id: string;
+          company_id: string;
+          month_id: string;
+          project_id: string;
+          invoice_date: string;
+          supplier_name: string;
+          supplier_vat: string | null;
+          invoice_number: string;
+          description: string | null;
+          net_amount: number;
+          vat_amount: number;
+          total_amount: number;
+          payment_status: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          month_id: string;
+          project_id: string;
+          invoice_date: string;
+          supplier_name: string;
+          supplier_vat?: string | null;
+          invoice_number: string;
+          description?: string | null;
+          net_amount?: number;
+          vat_amount?: number;
+          total_amount?: number;
+          payment_status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          month_id?: string;
+          project_id?: string;
+          invoice_date?: string;
+          supplier_name?: string;
+          supplier_vat?: string | null;
+          invoice_number?: string;
+          description?: string | null;
+          net_amount?: number;
+          vat_amount?: number;
+          total_amount?: number;
+          payment_status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       projects: {
         Row: {
           id: string;

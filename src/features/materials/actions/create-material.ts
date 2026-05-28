@@ -1,0 +1,122 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requireUser } from "@/src/core/auth";
+import { writeAuditLog } from "@/src/core/audit";
+import { requireFeature } from "@/src/core/entitlements";
+import { requireRole } from "@/src/core/roles";
+import { getCurrentCompany, requireCompanyMember } from "@/src/core/tenants";
+import { createClient } from "@/src/integrations/supabase/server";
+import { checkDuplicateMaterialInvoice } from "../services/check-duplicate-material-invoice";
+import { validateMaterialRelations } from "../services/validate-material-relations";
+import type { MaterialActionState } from "../types";
+import { materialInputSchema } from "../validators";
+
+function fieldErrors(validation: ReturnType<typeof materialInputSchema.safeParse>) {
+  if (validation.success) return {};
+  return Object.fromEntries(
+    Object.entries(validation.error.flatten().fieldErrors).map(([field, messages]) => [
+      field,
+      messages?.[0],
+    ]),
+  );
+}
+
+export async function createMaterial(
+  _previousState: MaterialActionState,
+  formData: FormData,
+): Promise<MaterialActionState> {
+  const user = await requireUser();
+  const currentCompany = await getCurrentCompany();
+
+  if (!currentCompany) return { ok: false, message: "Δεν βρέθηκε ενεργή εταιρεία." };
+
+  const companyId = currentCompany.company.id;
+  await requireCompanyMember(companyId);
+  await requireRole(companyId, ["owner", "admin", "office", "foreman"]);
+  await requireFeature(companyId, "materials");
+
+  const validation = materialInputSchema.safeParse({
+    monthId: formData.get("monthId"),
+    projectId: formData.get("projectId"),
+    invoiceDate: formData.get("invoiceDate"),
+    supplierName: formData.get("supplierName"),
+    supplierVat: formData.get("supplierVat"),
+    invoiceNumber: formData.get("invoiceNumber"),
+    description: formData.get("description"),
+    netAmount: formData.get("netAmount"),
+    vatAmount: formData.get("vatAmount"),
+    totalAmount: formData.get("totalAmount"),
+    paymentStatus: formData.get("paymentStatus"),
+    notes: formData.get("notes"),
+  });
+
+  if (!validation.success) {
+    return {
+      ok: false,
+      message: "Ελέγξτε τα στοιχεία του τιμολογίου υλικών.",
+      fieldErrors: fieldErrors(validation),
+    };
+  }
+
+  const input = validation.data;
+
+  try {
+    await validateMaterialRelations(companyId, input);
+    await checkDuplicateMaterialInvoice({
+      companyId,
+      supplierName: input.supplierName,
+      supplierVat: input.supplierVat,
+      invoiceNumber: input.invoiceNumber,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error ? error.message : "Το τιμολόγιο υλικών δεν είναι έγκυρο.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: material, error } = await supabase
+    .from("materials")
+    .insert({
+      company_id: companyId,
+      month_id: input.monthId,
+      project_id: input.projectId,
+      invoice_date: input.invoiceDate,
+      supplier_name: input.supplierName,
+      supplier_vat: input.supplierVat,
+      invoice_number: input.invoiceNumber,
+      description: input.description,
+      net_amount: input.netAmount,
+      vat_amount: input.vatAmount,
+      total_amount: input.totalAmount,
+      payment_status: input.paymentStatus,
+      notes: input.notes,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error || !material) {
+    console.error("[materials:createMaterial] Supabase error", {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+    });
+    return { ok: false, message: "Δεν ήταν δυνατή η δημιουργία τιμολογίου υλικών." };
+  }
+
+  await writeAuditLog({
+    companyId,
+    action: "material.created",
+    entityType: "material",
+    entityId: material.id,
+    metadata: { invoiceNumber: input.invoiceNumber, totalAmount: input.totalAmount },
+  });
+
+  revalidatePath("/materials");
+  return { ok: true, message: "Το τιμολόγιο υλικών δημιουργήθηκε." };
+}
