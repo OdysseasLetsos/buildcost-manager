@@ -277,6 +277,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      expenses: {
+        Row: {
+          id: string;
+          company_id: string;
+          month_id: string;
+          expense_date: string;
+          scope: string;
+          category: string;
+          description: string | null;
+          amount: number;
+          allocation_method: string;
+          allocation_status: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          month_id: string;
+          expense_date: string;
+          scope: string;
+          category: string;
+          description?: string | null;
+          amount: number;
+          allocation_method: string;
+          allocation_status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          month_id?: string;
+          expense_date?: string;
+          scope?: string;
+          category?: string;
+          description?: string | null;
+          amount?: number;
+          allocation_method?: string;
+          allocation_status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       employees: {
         Row: {
           id: string;
