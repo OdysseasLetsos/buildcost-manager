@@ -577,6 +577,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      revenues: {
+        Row: {
+          id: string;
+          company_id: string;
+          month_id: string;
+          project_id: string;
+          revenue_date: string;
+          client_name: string;
+          invoice_number: string | null;
+          revenue_type: string;
+          invoiced_amount: number;
+          received_amount: number;
+          remaining_amount: number;
+          status: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          month_id: string;
+          project_id: string;
+          revenue_date: string;
+          client_name: string;
+          invoice_number?: string | null;
+          revenue_type: string;
+          invoiced_amount?: number;
+          received_amount?: number;
+          remaining_amount?: number;
+          status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          month_id?: string;
+          project_id?: string;
+          revenue_date?: string;
+          client_name?: string;
+          invoice_number?: string | null;
+          revenue_type?: string;
+          invoiced_amount?: number;
+          received_amount?: number;
+          remaining_amount?: number;
+          status?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       plans: {
         Row: {
           id: string;
