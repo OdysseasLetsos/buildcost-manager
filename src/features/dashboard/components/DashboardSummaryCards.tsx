@@ -1,7 +1,6 @@
 import type {
   DashboardDailyWorkStats,
-  DashboardEmployeeStats,
-  DashboardMonthlyPeriodStats,
+  DashboardFinancials,
   DashboardProjectStats,
   DashboardSummaryMetric,
 } from "../types";
@@ -24,35 +23,51 @@ const numberFormatter = new Intl.NumberFormat("el-GR", {
 
 export function DashboardSummaryCards({
   projectStats,
-  employeeStats,
-  monthlyPeriodStats,
   dailyWorkStats,
+  financials,
+  canViewFinancials,
 }: Readonly<{
   projectStats: DashboardProjectStats;
-  employeeStats: DashboardEmployeeStats;
-  monthlyPeriodStats: DashboardMonthlyPeriodStats;
   dailyWorkStats: DashboardDailyWorkStats;
+  financials: DashboardFinancials | null;
+  canViewFinancials: boolean;
 }>) {
-  const metrics: DashboardSummaryMetric[] = [
+  const financialMetrics: DashboardSummaryMetric[] = [
+    {
+      label: "Σύνολο Εσόδων",
+      value: currencyFormatter.format(financials?.invoicedRevenue ?? 0),
+      helper: "Τιμολογηθέντα έσοδα μήνα.",
+      tone: "emerald",
+    },
+    {
+      label: "Συνολικό Κόστος",
+      value: currencyFormatter.format(financials?.totalCost ?? 0),
+      helper: "Κόστος από Project Summary.",
+      tone: "amber",
+    },
+    {
+      label: "Κέρδος Μήνα",
+      value: currencyFormatter.format(financials?.profit ?? 0),
+      helper:
+        financials?.margin === null || financials?.margin === undefined
+          ? "Δεν υπάρχει περιθώριο χωρίς έσοδα."
+          : `Περιθώριο ${numberFormatter.format(financials.margin * 100)}%.`,
+      tone: (financials?.profit ?? 0) < 0 ? "amber" : "blue",
+    },
     {
       label: "Ενεργά Έργα",
       value: String(projectStats.activeProjects),
       helper: `${projectStats.totalProjects} συνολικά έργα.`,
       tone: "slate",
     },
+  ];
+
+  const operationalMetrics: DashboardSummaryMetric[] = [
     {
-      label: "Ενεργοί Εργαζόμενοι",
-      value: String(employeeStats.activeEmployees),
-      helper: `${employeeStats.totalEmployees} συνολικά άτομα.`,
-      tone: "blue",
-    },
-    {
-      label: "Τρέχων Μήνας",
-      value: monthlyPeriodStats.selectedMonth?.month_key ?? "-",
-      helper: monthlyPeriodStats.latestOpenMonth
-        ? "Τελευταίος ανοιχτός μήνας."
-        : "Δεν υπάρχει ανοιχτός μήνας.",
-      tone: "emerald",
+      label: "Ενεργά Έργα",
+      value: String(projectStats.activeProjects),
+      helper: `${projectStats.totalProjects} συνολικά έργα.`,
+      tone: "slate",
     },
     {
       label: "Σύνολο Ωρών",
@@ -72,22 +87,10 @@ export function DashboardSummaryCards({
       helper: "Ποσά εξόδων από ημερήσιες καταχωρήσεις.",
       tone: "emerald",
     },
-    {
-      label: "Εκτιμώμενο Κόστος Εργασίας",
-      value: currencyFormatter.format(dailyWorkStats.estimatedLaborCost),
-      helper: "Με βάση ωρομίσθιο ή ημερομίσθιο / 8.",
-      tone: "amber",
-    },
-    {
-      label: "Κλειδωμένοι Μήνες",
-      value: String(monthlyPeriodStats.lockedMonths),
-      helper: `${monthlyPeriodStats.openMonths} ανοιχτοί μήνες.`,
-      tone: "slate",
-    },
   ];
 
-  // TODO: Real revenue, expense and profit totals require the Revenues,
-  // Expenses, Payments, Materials and IKA modules.
+  const metrics = canViewFinancials ? financialMetrics : operationalMetrics;
+
   return (
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => (
@@ -95,14 +98,10 @@ export function DashboardSummaryCards({
           key={metric.label}
           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60"
         >
-          <div
-            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${toneClassNames[metric.tone]}`}
-          >
+          <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${toneClassNames[metric.tone]}`}>
             {metric.label}
           </div>
-          <p className="mt-4 text-3xl font-semibold text-slate-950">
-            {metric.value}
-          </p>
+          <p className="mt-4 text-3xl font-semibold text-slate-950">{metric.value}</p>
           <p className="mt-2 text-sm leading-5 text-slate-500">{metric.helper}</p>
         </article>
       ))}

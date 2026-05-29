@@ -10,7 +10,7 @@ export async function getDashboardMonthlyPeriods(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("monthly_periods")
-    .select("id, month_key, status, created_at, locked_at")
+    .select("id, month_key, status, is_locked, created_at, locked_at")
     .eq("company_id", companyId)
     .order("month_key", { ascending: false });
 
