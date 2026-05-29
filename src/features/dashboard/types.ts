@@ -18,7 +18,7 @@ export type DashboardEmployee = Pick<
 
 export type DashboardMonthlyPeriod = Pick<
   Database["public"]["Tables"]["monthly_periods"]["Row"],
-  "id" | "month_key" | "status" | "created_at" | "locked_at"
+  "id" | "month_key" | "status" | "is_locked" | "created_at" | "locked_at"
 >;
 
 export type DashboardProjectStats = {
@@ -94,4 +94,58 @@ export type DashboardSummaryMetric = {
   value: string;
   helper: string;
   tone: "blue" | "emerald" | "amber" | "slate";
+};
+
+export type DashboardFinancialProject = {
+  projectId: string;
+  revenue: number;
+  receivedRevenue: number;
+  remainingRevenue: number;
+  totalCost: number;
+  profit: number;
+  margin: number | null;
+  status: "healthy" | "low_margin" | "loss" | "no_revenue";
+};
+
+export type DashboardFinancials = {
+  monthId: string;
+  monthKey: string | null;
+  invoicedRevenue: number;
+  receivedRevenue: number;
+  remainingRevenue: number;
+  totalCost: number;
+  paymentsCost: number;
+  ikaCost: number;
+  materialsCost: number;
+  allocatedExpenses: number;
+  employeeExpenses: number;
+  profit: number;
+  margin: number | null;
+  projects: DashboardFinancialProject[];
+};
+
+export type DashboardMonthlyFinancialTotal = {
+  monthId: string;
+  monthKey: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+  margin: number | null;
+};
+
+export type DashboardRecentActivity = {
+  id: string;
+  date: string;
+  type: "revenue" | "material" | "expense" | "daily_work" | "payment" | "ika";
+  typeLabel: string;
+  category: string;
+  description: string;
+  projectLabel?: string;
+  amount?: number;
+};
+
+export type DashboardAlert = {
+  id: string;
+  tone: "amber" | "red" | "blue";
+  message: string;
 };
