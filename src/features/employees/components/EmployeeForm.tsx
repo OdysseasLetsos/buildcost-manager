@@ -118,6 +118,23 @@ export function EmployeeForm({
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          Ωρομίσθιο Υπερωρίας
+          <input
+            name="overtimeRate"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={formatRateValue(employee?.overtime_rate ?? null)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
+          />
+          {state.fieldErrors?.overtimeRate ? (
+            <span className="text-xs text-red-700">
+              {state.fieldErrors.overtimeRate}
+            </span>
+          ) : null}
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Κατάσταση
           <select
             name="active"

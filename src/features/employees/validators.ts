@@ -36,6 +36,7 @@ export const employeeInputSchema = z.object({
   }),
   dailyRate: optionalRate,
   hourlyRate: optionalRate,
+  overtimeRate: optionalRate,
   active: z
     .string()
     .nullable()

@@ -20,13 +20,16 @@ export function getRevenuesByProject(
       remainingAmount: 0,
     };
     const sign = revenue.revenue_type === "credit" ? -1 : 1;
+    const invoicedAmount = Number(revenue.invoiced_amount ?? 0);
+    const receivedAmount = Number(revenue.received_amount ?? 0);
+    const remainingAmount = Number(revenue.remaining_amount ?? 0);
 
     if (revenue.revenue_type === "invoice" || revenue.revenue_type === "credit") {
-      existing.invoicedAmount += sign * revenue.invoiced_amount;
+      existing.invoicedAmount += sign * invoicedAmount;
     }
-    existing.receivedAmount += sign * revenue.received_amount;
+    existing.receivedAmount += sign * receivedAmount;
     if (revenue.revenue_type === "invoice") {
-      existing.remainingAmount += revenue.remaining_amount;
+      existing.remainingAmount += remainingAmount;
     }
     totals.set(revenue.project_id, existing);
   }

@@ -41,6 +41,21 @@ export type PaymentAllocationPreview = {
   warnings: AllocationWarning[];
 };
 
+export type SuggestedEmployeePayment = {
+  employee_id: string;
+  month_id: string;
+  regular_hours: number;
+  overtime_hours: number;
+  regular_hourly_rate: number;
+  overtime_hourly_rate: number;
+  regular_amount: number;
+  overtime_amount: number;
+  employee_expenses: number;
+  suggested_payment_amount: number;
+  has_work_entries: boolean;
+  has_rates: boolean;
+};
+
 export type PaymentActionState = {
   ok: boolean;
   message?: string;

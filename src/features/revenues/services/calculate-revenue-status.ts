@@ -14,14 +14,7 @@ export function calculateRevenueStatus(input: {
   remainingAmount: number;
   status: RevenueStatus;
 }): NormalizedRevenueAmounts {
-  if (input.status === "cancelled") {
-    return {
-      invoicedAmount: input.invoicedAmount,
-      receivedAmount: input.receivedAmount,
-      remainingAmount: input.remainingAmount,
-      status: "cancelled",
-    };
-  }
+  const forcedCancelled = input.status === "cancelled";
 
   if (input.revenueType === "invoice") {
     const remainingAmount = Math.max(
@@ -37,7 +30,7 @@ export function calculateRevenueStatus(input: {
       invoicedAmount: input.invoicedAmount,
       receivedAmount: input.receivedAmount,
       remainingAmount,
-      status,
+      status: forcedCancelled ? "cancelled" : status,
     };
   }
 
@@ -46,7 +39,7 @@ export function calculateRevenueStatus(input: {
       invoicedAmount: input.invoicedAmount,
       receivedAmount: input.receivedAmount,
       remainingAmount: 0,
-      status: "paid",
+      status: forcedCancelled ? "cancelled" : "paid",
     };
   }
 
@@ -54,8 +47,8 @@ export function calculateRevenueStatus(input: {
     return {
       invoicedAmount: input.invoicedAmount,
       receivedAmount: input.receivedAmount,
-      remainingAmount: input.remainingAmount,
-      status: input.remainingAmount > 0 ? "partial" : "paid",
+      remainingAmount: 0,
+      status: forcedCancelled ? "cancelled" : "paid",
     };
   }
 
@@ -63,6 +56,6 @@ export function calculateRevenueStatus(input: {
     invoicedAmount: input.invoicedAmount,
     receivedAmount: input.receivedAmount,
     remainingAmount: 0,
-    status: "paid",
+    status: forcedCancelled ? "cancelled" : "paid",
   };
 }

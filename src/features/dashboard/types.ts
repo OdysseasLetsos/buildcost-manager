@@ -13,7 +13,13 @@ export type DashboardProject = Pick<
 
 export type DashboardEmployee = Pick<
   Database["public"]["Tables"]["employees"]["Row"],
-  "id" | "full_name" | "employee_type" | "daily_rate" | "hourly_rate" | "active"
+  | "id"
+  | "full_name"
+  | "employee_type"
+  | "daily_rate"
+  | "hourly_rate"
+  | "overtime_rate"
+  | "active"
 >;
 
 export type DashboardMonthlyPeriod = Pick<

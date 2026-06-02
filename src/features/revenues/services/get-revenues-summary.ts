@@ -5,20 +5,24 @@ export function getRevenuesSummary(revenues: RevenueWithRelations[]): RevenuesSu
     (summary, revenue) => {
       if (revenue.status === "cancelled") return summary;
 
+      const invoicedAmount = Number(revenue.invoiced_amount ?? 0);
+      const receivedAmount = Number(revenue.received_amount ?? 0);
+      const remainingAmount = Number(revenue.remaining_amount ?? 0);
+
       if (revenue.revenue_type === "credit") {
-        summary.invoicedAmount -= revenue.invoiced_amount;
-        summary.receivedAmount -= revenue.received_amount;
-        summary.totalRevenue -= revenue.received_amount;
+        summary.invoicedAmount -= invoicedAmount;
+        summary.receivedAmount -= receivedAmount;
+        summary.totalRevenue -= receivedAmount;
         return summary;
       }
 
       if (revenue.revenue_type === "invoice") {
-        summary.invoicedAmount += revenue.invoiced_amount;
-        summary.remainingAmount += revenue.remaining_amount;
+        summary.invoicedAmount += invoicedAmount;
+        summary.remainingAmount += remainingAmount;
       }
 
-      summary.receivedAmount += revenue.received_amount;
-      summary.totalRevenue += revenue.received_amount;
+      summary.receivedAmount += receivedAmount;
+      summary.totalRevenue += receivedAmount;
       return summary;
     },
     {

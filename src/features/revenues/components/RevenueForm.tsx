@@ -8,6 +8,7 @@ import {
   revenueStatuses,
   revenueTypeLabels,
   revenueTypes,
+  type RevenueStatus,
   type RevenueType,
 } from "../constants";
 import type { Revenue, RevenueActionState } from "../types";
@@ -20,6 +21,38 @@ type RevenueFormAction = (
 
 function decimalValue(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : String(value);
+}
+
+function parseAmount(value: string): number {
+  const amount = Number(value.replace(",", "."));
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function formattedAmount(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function calculateDerivedFields({
+  revenueType,
+  invoicedAmount,
+  receivedAmount,
+}: {
+  revenueType: RevenueType;
+  invoicedAmount: number;
+  receivedAmount: number;
+}): { remainingAmount: number; status: RevenueStatus } {
+  if (revenueType === "invoice") {
+    const remainingAmount = Math.max(invoicedAmount - receivedAmount, 0);
+    if (remainingAmount === 0 && invoicedAmount > 0) {
+      return { remainingAmount, status: "paid" };
+    }
+    if (receivedAmount > 0 && remainingAmount > 0) {
+      return { remainingAmount, status: "partial" };
+    }
+    return { remainingAmount, status: "pending" };
+  }
+
+  return { remainingAmount: 0, status: "paid" };
 }
 
 export function RevenueForm({
@@ -39,10 +72,29 @@ export function RevenueForm({
   submitLabel: string;
   onSuccess?: () => void;
 }>) {
-  const [state, formAction, isPending] = useActionState(action, initialRevenueActionState);
+  const [state, formAction, isPending] = useActionState(
+    action,
+    initialRevenueActionState,
+  );
   const [revenueType, setRevenueType] = useState<RevenueType>(
     revenue?.revenue_type ?? "invoice",
   );
+  const [invoicedAmount, setInvoicedAmount] = useState(
+    decimalValue(revenue?.invoiced_amount ?? (revenueType === "invoice" ? undefined : 0)),
+  );
+  const [receivedAmount, setReceivedAmount] = useState(
+    decimalValue(revenue?.received_amount ?? 0),
+  );
+  const [statusOverride, setStatusOverride] = useState<RevenueStatus | null>(
+    revenue?.status === "cancelled" ? "cancelled" : null,
+  );
+  const derivedFields = calculateDerivedFields({
+    revenueType,
+    invoicedAmount: parseAmount(invoicedAmount),
+    receivedAmount: parseAmount(receivedAmount),
+  });
+  const remainingAmount = formattedAmount(derivedFields.remainingAmount);
+  const status = statusOverride === "cancelled" ? "cancelled" : derivedFields.status;
 
   useEffect(() => {
     if (state.ok) onSuccess?.();
@@ -50,69 +102,179 @@ export function RevenueForm({
 
   return (
     <form action={formAction} className="grid gap-4">
-      {revenue ? <input type="hidden" name="id" value={revenue.id} /> : null}
+      {revenue ? <input name="id" type="hidden" value={revenue.id} /> : null}
       {state.message ? (
-        <p className={`rounded-lg border px-4 py-3 text-sm ${state.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}>
+        <p
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            state.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
           {state.message}
         </p>
       ) : null}
+
       <div className="grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Μήνας
-          <select name="monthId" defaultValue={revenue?.month_id ?? defaultMonthId} required className="rounded-lg border border-slate-300 px-3 py-2">
+          <select
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            defaultValue={revenue?.month_id ?? defaultMonthId}
+            name="monthId"
+            required
+          >
             <option value="">Επιλέξτε μήνα</option>
-            {monthlyPeriods.map((period) => <option key={period.id} value={period.id}>{period.month_key}</option>)}
+            {monthlyPeriods.map((period) => (
+              <option key={period.id} value={period.id}>
+                {period.month_key}
+              </option>
+            ))}
           </select>
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Ημερομηνία
-          <input name="revenueDate" type="date" defaultValue={revenue?.revenue_date ?? ""} required className="rounded-lg border border-slate-300 px-3 py-2" />
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            defaultValue={revenue?.revenue_date ?? ""}
+            name="revenueDate"
+            required
+            type="date"
+          />
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Έργο
-          <select name="projectId" defaultValue={revenue?.project_id ?? ""} required className="rounded-lg border border-slate-300 px-3 py-2">
+          <select
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            defaultValue={revenue?.project_id ?? ""}
+            name="projectId"
+            required
+          >
             <option value="">Επιλέξτε έργο</option>
-            {projects.map((project) => <option key={project.id} value={project.id}>{project.code} - {project.name}</option>)}
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.code} - {project.name}
+              </option>
+            ))}
           </select>
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Πελάτης
-          <input name="clientName" defaultValue={revenue?.client_name ?? ""} required className="rounded-lg border border-slate-300 px-3 py-2" />
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            defaultValue={revenue?.client_name ?? ""}
+            name="clientName"
+            required
+          />
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Αριθμός Τιμολογίου
-          <input name="invoiceNumber" defaultValue={revenue?.invoice_number ?? ""} className="rounded-lg border border-slate-300 px-3 py-2" />
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            defaultValue={revenue?.invoice_number ?? ""}
+            name="invoiceNumber"
+          />
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Τύπος Εσόδου
-          <select name="revenueType" value={revenueType} onChange={(event) => setRevenueType(event.target.value as RevenueType)} required className="rounded-lg border border-slate-300 px-3 py-2">
-            {revenueTypes.map((type) => <option key={type} value={type}>{revenueTypeLabels[type]}</option>)}
+          <select
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            name="revenueType"
+            onChange={(event) => setRevenueType(event.target.value as RevenueType)}
+            required
+            value={revenueType}
+          >
+            {revenueTypes.map((type) => (
+              <option key={type} value={type}>
+                {revenueTypeLabels[type]}
+              </option>
+            ))}
           </select>
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Τιμολογηθέν Ποσό
-          <input name="invoicedAmount" type="number" min="0" step="0.01" defaultValue={decimalValue(revenue?.invoiced_amount ?? (revenueType === "invoice" ? undefined : 0))} required className="rounded-lg border border-slate-300 px-3 py-2" />
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            min="0"
+            name="invoicedAmount"
+            onChange={(event) => setInvoicedAmount(event.target.value)}
+            required
+            step="0.01"
+            type="number"
+            value={invoicedAmount}
+          />
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Εισπραχθέν Ποσό
-          <input name="receivedAmount" type="number" min="0" step="0.01" defaultValue={decimalValue(revenue?.received_amount ?? 0)} required className="rounded-lg border border-slate-300 px-3 py-2" />
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            min="0"
+            name="receivedAmount"
+            onChange={(event) => setReceivedAmount(event.target.value)}
+            required
+            step="0.01"
+            type="number"
+            value={receivedAmount}
+          />
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Υπόλοιπο
-          <input name="remainingAmount" type="number" min="0" step="0.01" defaultValue={decimalValue(revenue?.remaining_amount ?? 0)} required className="rounded-lg border border-slate-300 px-3 py-2" />
+          <input
+            className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2"
+            min="0"
+            name="remainingAmount"
+            readOnly
+            required
+            step="0.01"
+            type="number"
+            value={remainingAmount}
+          />
         </label>
+
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Κατάσταση
-          <select name="status" defaultValue={revenue?.status ?? "pending"} required className="rounded-lg border border-slate-300 px-3 py-2">
-            {revenueStatuses.map((status) => <option key={status} value={status}>{revenueStatusLabels[status]}</option>)}
+          <select
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            name="status"
+            onChange={(event) => {
+              const nextStatus = event.target.value as RevenueStatus;
+              setStatusOverride(nextStatus === "cancelled" ? "cancelled" : null);
+            }}
+            required
+            value={status}
+          >
+            {revenueStatuses.map((statusOption) => (
+              <option key={statusOption} value={statusOption}>
+                {revenueStatusLabels[statusOption]}
+              </option>
+            ))}
           </select>
         </label>
       </div>
+
       <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
         Σημειώσεις
-        <textarea name="notes" defaultValue={revenue?.notes ?? ""} rows={3} className="rounded-lg border border-slate-300 px-3 py-2" />
+        <textarea
+          className="rounded-lg border border-slate-300 px-3 py-2"
+          defaultValue={revenue?.notes ?? ""}
+          name="notes"
+          rows={3}
+        />
       </label>
-      <button type="submit" disabled={isPending} className="justify-self-start rounded-lg bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+
+      <button
+        className="justify-self-start rounded-lg bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        disabled={isPending}
+        type="submit"
+      >
         {isPending ? "Αποθήκευση..." : submitLabel}
       </button>
     </form>
