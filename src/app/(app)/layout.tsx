@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import {
   AppShell,
   type NavigationItem,
+  type NavigationIconName,
 } from "@/src/shared/components/app-shell";
 import { getCurrentUser, logout } from "@/src/core/auth";
 import { canUseFeature, type FeatureCode } from "@/src/core/entitlements";
@@ -20,83 +21,90 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
+    icon: "dashboard",
     allowedRoles: ["owner", "admin", "office", "foreman", "viewer"],
   },
   {
     href: "/projects",
     label: "Έργα",
+    icon: "projects",
     allowedRoles: ["owner", "admin", "foreman", "viewer"],
     featureCode: "projects",
   },
   {
     href: "/employees",
     label: "Εργαζόμενοι",
+    icon: "employees",
     allowedRoles: ["owner", "admin", "office", "foreman", "viewer"],
     featureCode: "employees",
   },
   {
     href: "/months",
     label: "Μήνες",
+    icon: "months",
     allowedRoles: ["owner", "admin"],
     featureCode: "monthly_periods",
   },
   {
     href: "/daily-work",
     label: "Ημερήσια Εργασία",
+    icon: "dailyWork",
     allowedRoles: ["owner", "admin", "foreman"],
     featureCode: "daily_work",
   },
   {
     href: "/payments",
-    label: "Πληρωμές",
+    label: "Πληρωμές & ΙΚΑ",
+    icon: "payments",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "payments",
   },
   {
-    href: "/ika",
-    label: "ΙΚΑ",
-    allowedRoles: ["owner", "admin", "office"],
-    featureCode: "ika",
-  },
-  {
     href: "/materials",
     label: "Υλικά",
+    icon: "materials",
     allowedRoles: ["owner", "admin", "office", "foreman"],
     featureCode: "materials",
   },
   {
     href: "/expenses",
     label: "Έξοδα",
+    icon: "expenses",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "expenses",
   },
   {
     href: "/revenues",
     label: "Έσοδα",
+    icon: "revenues",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "revenues",
   },
   {
     href: "/project-summary",
     label: "Σύνοψη Έργου",
+    icon: "summary",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "project_summary",
   },
   {
     href: "/ai-invoices",
     label: "AI Τιμολόγια",
+    icon: "aiInvoices",
     allowedRoles: ["owner", "admin"],
     featureCode: "ai_invoice_import",
   },
   {
     href: "/reports",
     label: "Αναφορές",
+    icon: "reports",
     allowedRoles: ["owner", "admin", "office", "viewer"],
     anyFeatureCode: ["reports_pdf", "reports_excel"],
   },
   {
     href: "/settings/members",
-    label: "Μέλη",
+    label: "Ρυθμίσεις",
+    icon: "settings",
     allowedRoles: ["owner", "admin"],
   },
 ];
@@ -160,7 +168,11 @@ async function getVisibleNavigationItems(
 
   return visibility
     .filter(({ visible }) => visible)
-    .map(({ item }) => ({ href: item.href, label: item.label }));
+    .map(({ item }) => ({
+      href: item.href,
+      label: item.label,
+      icon: item.icon as NavigationIconName,
+    }));
 }
 
 export default async function AppLayout({

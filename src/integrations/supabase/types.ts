@@ -333,6 +333,7 @@ export type Database = {
           employee_type: string;
           daily_rate: number | null;
           hourly_rate: number | null;
+          overtime_rate: number | null;
           active: boolean;
           notes: string | null;
           status: string;
@@ -347,6 +348,7 @@ export type Database = {
           employee_type?: string;
           daily_rate?: number | null;
           hourly_rate?: number | null;
+          overtime_rate?: number | null;
           active?: boolean;
           notes?: string | null;
           status?: string;
@@ -359,6 +361,7 @@ export type Database = {
           employee_type?: string;
           daily_rate?: number | null;
           hourly_rate?: number | null;
+          overtime_rate?: number | null;
           active?: boolean;
           notes?: string | null;
           status?: string;

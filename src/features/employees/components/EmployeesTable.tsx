@@ -81,6 +81,7 @@ export function EmployeesTable({
               <th className="px-5 py-3 font-semibold">Τύπος</th>
               <th className="px-5 py-3 font-semibold">Ημερομίσθιο</th>
               <th className="px-5 py-3 font-semibold">Ωρομίσθιο</th>
+              <th className="px-5 py-3 font-semibold">Υπερωρία</th>
               <th className="px-5 py-3 font-semibold">Κατάσταση</th>
               <th className="px-5 py-3 font-semibold">Σημειώσεις</th>
               <th className="px-5 py-3 font-semibold">Ενέργειες</th>
@@ -100,6 +101,9 @@ export function EmployeesTable({
                 </td>
                 <td className="px-5 py-4 text-slate-700">
                   {formatRate(employee.hourly_rate)}
+                </td>
+                <td className="px-5 py-4 text-slate-700">
+                  {formatRate(employee.overtime_rate)}
                 </td>
                 <td className="px-5 py-4">
                   <EmployeeStatusBadge active={employee.active} />

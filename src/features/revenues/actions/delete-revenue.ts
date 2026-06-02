@@ -76,5 +76,8 @@ export async function deleteRevenue(
   });
 
   revalidatePath("/revenues");
+  revalidatePath("/project-summary");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
   return { ok: true, message: "Το έσοδο διαγράφηκε." };
 }

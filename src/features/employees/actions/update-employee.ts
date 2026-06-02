@@ -61,6 +61,7 @@ export async function updateEmployee(
     employeeType: formData.get("employeeType"),
     dailyRate: formData.get("dailyRate"),
     hourlyRate: formData.get("hourlyRate"),
+    overtimeRate: formData.get("overtimeRate"),
     active: formData.get("active"),
     notes: formData.get("notes"),
   });
@@ -82,6 +83,7 @@ export async function updateEmployee(
       employee_type: input.employeeType,
       daily_rate: input.dailyRate,
       hourly_rate: input.hourlyRate,
+      overtime_rate: input.overtimeRate,
       active: input.active,
       status: input.active ? "active" : "inactive",
       notes: input.notes,

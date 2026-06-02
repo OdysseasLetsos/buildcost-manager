@@ -51,9 +51,13 @@ function getEstimatedLaborCost(
       : employee?.daily_rate !== null && employee?.daily_rate !== undefined
         ? toNumber(employee.daily_rate) / 8
         : 0;
+  const overtimeRate =
+    employee?.overtime_rate !== null && employee?.overtime_rate !== undefined
+      ? toNumber(employee.overtime_rate)
+      : hourlyRate;
 
   // TODO: Refine overtime multipliers and payroll rules in the Payments/IKA modules.
-  return (toNumber(entry.hours) + toNumber(entry.overtime_hours)) * hourlyRate;
+  return toNumber(entry.hours) * hourlyRate + toNumber(entry.overtime_hours) * overtimeRate;
 }
 
 function emptyStats(selectedMonth: DashboardMonthlyPeriod | null): DashboardDailyWorkStats {
@@ -88,7 +92,7 @@ export async function getDashboardDailyWork(
         .order("created_at", { ascending: false }),
       supabase
         .from("employees")
-        .select("id, full_name, employee_type, daily_rate, hourly_rate, active")
+        .select("id, full_name, employee_type, daily_rate, hourly_rate, overtime_rate, active")
         .eq("company_id", companyId),
       supabase
         .from("projects")

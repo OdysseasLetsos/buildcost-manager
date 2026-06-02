@@ -121,5 +121,8 @@ export async function createRevenue(
   });
 
   revalidatePath("/revenues");
+  revalidatePath("/project-summary");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
   return { ok: true, message: "Το έσοδο δημιουργήθηκε." };
 }
