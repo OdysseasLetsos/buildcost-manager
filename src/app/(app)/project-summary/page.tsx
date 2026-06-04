@@ -4,6 +4,7 @@ import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany, requireCompanyMember } from "@/src/core/tenants";
 import { getMonthlyPeriods } from "@/src/features/monthly-periods/services/get-monthly-periods";
 import { ProjectSummaryPageClient } from "@/src/features/project-summary/components/ProjectSummaryPageClient";
+import { getEmptyProjectSummaryReport } from "@/src/features/project-summary/services/aggregate-project-summary-reports";
 import { getProjectSummary } from "@/src/features/project-summary/services/get-project-summary";
 
 export default async function ProjectSummaryPage() {
@@ -45,18 +46,15 @@ export default async function ProjectSummaryPage() {
     (period) => period.status === "open" && !period.is_locked,
   );
   const defaultMonthId = latestOpenMonth?.id ?? monthlyPeriods[0]?.id ?? "";
-  const reportEntries = await Promise.all(
-    monthlyPeriods.map(
-      async (period) =>
-        [period.id, await getProjectSummary(companyId, period.id)] as const,
-    ),
-  );
+  const defaultReport = defaultMonthId
+    ? await getProjectSummary(companyId, defaultMonthId)
+    : getEmptyProjectSummaryReport();
 
   return (
     <ProjectSummaryPageClient
       monthlyPeriods={monthlyPeriods}
       defaultMonthId={defaultMonthId}
-      reportsByMonth={Object.fromEntries(reportEntries)}
+      defaultReport={defaultReport}
     />
   );
 }

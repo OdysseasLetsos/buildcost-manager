@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import {
   AppShell,
-  type NavigationItem,
   type NavigationIconName,
+  type NavigationItem,
 } from "@/src/shared/components/app-shell";
+import type { TranslationKey } from "@/src/shared/i18n";
 import { getCurrentUser, logout } from "@/src/core/auth";
 import { canUseFeature, type FeatureCode } from "@/src/core/entitlements";
 import { createClient } from "@/src/integrations/supabase/server";
@@ -15,18 +16,21 @@ type AppNavigationItem = NavigationItem & {
   allowedRoles: readonly RoleCode[];
   featureCode?: FeatureCode;
   anyFeatureCode?: readonly FeatureCode[];
+  labelKey: TranslationKey;
 };
 
 const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
+    labelKey: "nav.dashboard",
     icon: "dashboard",
     allowedRoles: ["owner", "admin", "office", "foreman", "viewer"],
   },
   {
     href: "/projects",
     label: "Έργα",
+    labelKey: "nav.projects",
     icon: "projects",
     allowedRoles: ["owner", "admin", "foreman", "viewer"],
     featureCode: "projects",
@@ -34,6 +38,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/employees",
     label: "Εργαζόμενοι",
+    labelKey: "nav.employees",
     icon: "employees",
     allowedRoles: ["owner", "admin", "office", "foreman", "viewer"],
     featureCode: "employees",
@@ -41,6 +46,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/months",
     label: "Μήνες",
+    labelKey: "nav.months",
     icon: "months",
     allowedRoles: ["owner", "admin"],
     featureCode: "monthly_periods",
@@ -48,6 +54,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/daily-work",
     label: "Ημερήσια Εργασία",
+    labelKey: "nav.dailyWork",
     icon: "dailyWork",
     allowedRoles: ["owner", "admin", "foreman"],
     featureCode: "daily_work",
@@ -55,6 +62,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/payments",
     label: "Πληρωμές & ΙΚΑ",
+    labelKey: "nav.payments",
     icon: "payments",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "payments",
@@ -62,6 +70,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/materials",
     label: "Υλικά",
+    labelKey: "nav.materials",
     icon: "materials",
     allowedRoles: ["owner", "admin", "office", "foreman"],
     featureCode: "materials",
@@ -69,6 +78,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/expenses",
     label: "Έξοδα",
+    labelKey: "nav.expenses",
     icon: "expenses",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "expenses",
@@ -76,6 +86,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/revenues",
     label: "Έσοδα",
+    labelKey: "nav.revenues",
     icon: "revenues",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "revenues",
@@ -83,6 +94,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/project-summary",
     label: "Σύνοψη Έργου",
+    labelKey: "nav.projectSummary",
     icon: "summary",
     allowedRoles: ["owner", "admin", "office"],
     featureCode: "project_summary",
@@ -90,6 +102,7 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/ai-invoices",
     label: "AI Τιμολόγια",
+    labelKey: "nav.aiInvoices",
     icon: "aiInvoices",
     allowedRoles: ["owner", "admin"],
     featureCode: "ai_invoice_import",
@@ -97,15 +110,17 @@ const appNavigationItems: AppNavigationItem[] = [
   {
     href: "/reports",
     label: "Αναφορές",
+    labelKey: "nav.reports",
     icon: "reports",
     allowedRoles: ["owner", "admin", "office", "viewer"],
     anyFeatureCode: ["reports_pdf", "reports_excel"],
   },
   {
-    href: "/settings/members",
+    href: "/settings",
     label: "Ρυθμίσεις",
+    labelKey: "nav.settings",
     icon: "settings",
-    allowedRoles: ["owner", "admin"],
+    allowedRoles: ["owner", "admin", "office", "foreman", "viewer"],
   },
 ];
 
@@ -171,6 +186,7 @@ async function getVisibleNavigationItems(
     .map(({ item }) => ({
       href: item.href,
       label: item.label,
+      labelKey: item.labelKey,
       icon: item.icon as NavigationIconName,
     }));
 }
