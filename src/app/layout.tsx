@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LanguageProvider } from "@/src/shared/i18n";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="el" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

@@ -1,10 +1,7 @@
-import type { ProjectSummaryRow, ProjectSummaryWarning } from "../types";
+"use client";
 
-const statusMessages = {
-  loss: "Το έργο εμφανίζει ζημιά.",
-  low_margin: "Το έργο έχει περιθώριο κάτω από 10%.",
-  no_revenue: "Το έργο έχει κόστος αλλά δεν έχει έσοδα.",
-} as const;
+import { useTranslation } from "@/src/shared/i18n";
+import type { ProjectSummaryRow, ProjectSummaryWarning } from "../types";
 
 export function LowMarginAlerts({
   projects,
@@ -13,6 +10,12 @@ export function LowMarginAlerts({
   projects: ProjectSummaryRow[];
   warnings: ProjectSummaryWarning[];
 }>) {
+  const { t } = useTranslation();
+  const statusMessages = {
+    loss: t("projectSummary.lossMessage"),
+    low_margin: t("projectSummary.lowMarginMessage"),
+    no_revenue: t("projectSummary.noRevenueMessage"),
+  } as const;
   const alertProjects = projects.filter((project) =>
     ["loss", "low_margin", "no_revenue"].includes(project.status),
   );
@@ -21,7 +24,9 @@ export function LowMarginAlerts({
 
   return (
     <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-      <h3 className="text-lg font-semibold text-amber-950">Ειδοποιήσεις</h3>
+      <h3 className="text-lg font-semibold text-amber-950">
+        {t("projectSummary.alerts")}
+      </h3>
       {alertProjects.map((project) => (
         <p key={project.projectId} className="text-sm text-amber-900">
           <span className="font-semibold">{project.projectCode} - {project.projectName}</span>:{" "}
