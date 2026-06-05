@@ -9,6 +9,9 @@ import {
   readSafeNextPath,
 } from "./redirects";
 
+const rateLimitMessage =
+  "Πάρα πολλά αιτήματα. Παρακαλώ περιμένετε λίγο και δοκιμάστε ξανά.";
+
 const passwordPolicyMessage =
   "Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες, κεφαλαίο, πεζό, αριθμό και ειδικό χαρακτήρα.";
 
@@ -57,12 +60,28 @@ function isInvalidCredentialsError(error: { code?: string; message?: string }): 
   );
 }
 
+function isRateLimitError(error: {
+  code?: string;
+  message?: string;
+  status?: number;
+}): boolean {
+  return (
+    error.code === "over_request_rate_limit" ||
+    error.status === 429 ||
+    error.message?.toLowerCase().includes("request rate limit") === true
+  );
+}
+
 function isPasswordValid(password: string): boolean {
   return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/.test(password);
 }
 
 function mapRegisterError(error: { code?: string; message?: string }): string {
   const message = error.message?.toLowerCase() ?? "";
+
+  if (isRateLimitError(error)) {
+    return rateLimitMessage;
+  }
 
   if (error.code === "over_email_send_rate_limit") {
     return "Πάρα πολλά αιτήματα. Παρακαλώ περιμένετε λίγο και δοκιμάστε ξανά.";
@@ -88,6 +107,10 @@ function mapRegisterError(error: { code?: string; message?: string }): string {
 }
 
 function mapLoginError(error: { code?: string; message?: string }): string {
+  if (isRateLimitError(error)) {
+    return rateLimitMessage;
+  }
+
   if (isInvalidCredentialsError(error)) {
     return "Λάθος email ή κωδικός πρόσβασης. Αν μόλις κάνατε εγγραφή, ελέγξτε αν χρειάζεται επιβεβαίωση email.";
   }
@@ -176,7 +199,9 @@ export async function signInWithGoogle(formData: FormData): Promise<void> {
     redirectWithMessage(
       "/login",
       "error",
-      "Δεν ήταν δυνατή η σύνδεση με Google. Παρακαλώ δοκιμάστε ξανά.",
+      error && isRateLimitError(error)
+        ? rateLimitMessage
+        : "Δεν ήταν δυνατή η σύνδεση με Google. Παρακαλώ δοκιμάστε ξανά.",
     );
   }
 
@@ -211,7 +236,9 @@ export async function requestPasswordReset(formData: FormData): Promise<void> {
     redirectWithMessage(
       "/forgot-password",
       "error",
-      "Δεν ήταν δυνατή η αποστολή οδηγιών επαναφοράς.",
+      isRateLimitError(error)
+        ? rateLimitMessage
+        : "Δεν ήταν δυνατή η αποστολή οδηγιών επαναφοράς.",
     );
   }
 

@@ -6,9 +6,9 @@ import {
 } from "@/src/shared/components/app-shell";
 import type { TranslationKey } from "@/src/shared/i18n";
 import { getCurrentUser, logout } from "@/src/core/auth";
-import { canUseFeature, type FeatureCode } from "@/src/core/entitlements";
+import type { FeatureCode } from "@/src/core/entitlements";
 import { createClient } from "@/src/integrations/supabase/server";
-import { getCurrentCompany } from "@/src/core/tenants";
+import { getCurrentCompanyForUser } from "@/src/core/tenants";
 
 type RoleCode = "owner" | "admin" | "office" | "foreman" | "viewer" | string;
 
@@ -140,9 +140,9 @@ async function getMembershipRole(roleId: string): Promise<RoleCode> {
 }
 
 async function canShowNavigationItem(
-  companyId: string,
   roleCode: RoleCode,
   item: AppNavigationItem,
+  enabledFeatureCodes: ReadonlySet<FeatureCode>,
 ): Promise<boolean> {
   if (!item.allowedRoles.includes(roleCode)) {
     return false;
@@ -156,28 +156,143 @@ async function canShowNavigationItem(
   }
 
   if (item.featureCode) {
-    return canUseFeature(companyId, item.featureCode);
+    return enabledFeatureCodes.has(item.featureCode);
   }
 
   if (item.anyFeatureCode) {
-    const checks = await Promise.all(
-      item.anyFeatureCode.map((featureCode) => canUseFeature(companyId, featureCode)),
+    return item.anyFeatureCode.some((featureCode) =>
+      enabledFeatureCodes.has(featureCode),
     );
-
-    return checks.some(Boolean);
   }
 
   return true;
+}
+
+async function getEnabledNavigationFeatureCodes(
+  companyId: string,
+): Promise<ReadonlySet<FeatureCode>> {
+  const featureCodes = Array.from(
+    new Set(
+      appNavigationItems.flatMap((item) => [
+        ...(item.featureCode ? [item.featureCode] : []),
+        ...(item.anyFeatureCode ?? []),
+      ]),
+    ),
+  );
+
+  if (featureCodes.length === 0) {
+    return new Set();
+  }
+
+  const supabase = await createClient();
+  const { data: features, error: featuresError } = await supabase
+    .from("features")
+    .select("id, code")
+    .in("code", featureCodes);
+
+  if (featuresError || !features?.length) {
+    console.warn("[layout:navigation-features] Unable to load features", {
+      message: featuresError?.message,
+      code: featuresError?.code,
+    });
+
+    return new Set();
+  }
+
+  const featureIdByCode = new Map(
+    features.map((feature) => [feature.code as FeatureCode, feature.id]),
+  );
+  const featureCodeById = new Map(
+    features.map((feature) => [feature.id, feature.code as FeatureCode]),
+  );
+  const featureIds = Array.from(featureCodeById.keys());
+
+  const { data: overrides, error: overridesError } = await supabase
+    .from("company_feature_overrides")
+    .select("feature_id, enabled")
+    .eq("company_id", companyId)
+    .in("feature_id", featureIds);
+
+  if (overridesError) {
+    console.warn("[layout:navigation-features] Unable to load overrides", {
+      message: overridesError.message,
+      code: overridesError.code,
+    });
+  }
+
+  const overrideByFeatureId = new Map(
+    (overrides ?? []).map((override) => [override.feature_id, override.enabled]),
+  );
+  const enabled = new Set<FeatureCode>();
+  const featureIdsWithoutOverrides = featureIds.filter(
+    (featureId) => !overrideByFeatureId.has(featureId),
+  );
+
+  for (const [featureId, isEnabled] of overrideByFeatureId) {
+    const featureCode = featureCodeById.get(featureId);
+
+    if (featureCode && isEnabled) {
+      enabled.add(featureCode);
+    }
+  }
+
+  if (featureIdsWithoutOverrides.length === 0) {
+    return enabled;
+  }
+
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .select("plan_id")
+    .eq("id", companyId)
+    .single();
+
+  if (companyError || !company?.plan_id) {
+    console.warn("[layout:navigation-features] Company has no active plan", {
+      companyId,
+      message: companyError?.message,
+      code: companyError?.code,
+    });
+
+    return enabled;
+  }
+
+  const { data: planFeatures, error: planFeaturesError } = await supabase
+    .from("plan_features")
+    .select("feature_id")
+    .eq("plan_id", company.plan_id)
+    .in("feature_id", featureIdsWithoutOverrides);
+
+  if (planFeaturesError) {
+    console.warn("[layout:navigation-features] Unable to load plan features", {
+      message: planFeaturesError.message,
+      code: planFeaturesError.code,
+    });
+
+    return enabled;
+  }
+
+  for (const planFeature of planFeatures ?? []) {
+    const featureCode = featureCodeById.get(planFeature.feature_id);
+
+    if (featureCode && featureIdByCode.has(featureCode)) {
+      enabled.add(featureCode);
+    }
+  }
+
+  return enabled;
 }
 
 async function getVisibleNavigationItems(
   companyId: string,
   roleCode: RoleCode,
 ): Promise<NavigationItem[]> {
+  const enabledFeatureCodes = hasFullNavigationAccess(roleCode)
+    ? new Set<FeatureCode>()
+    : await getEnabledNavigationFeatureCodes(companyId);
   const visibility = await Promise.all(
     appNavigationItems.map(async (item) => ({
       item,
-      visible: await canShowNavigationItem(companyId, roleCode, item),
+      visible: await canShowNavigationItem(roleCode, item, enabledFeatureCodes),
     })),
   );
 
@@ -202,7 +317,7 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  const currentCompany = await getCurrentCompany();
+  const currentCompany = await getCurrentCompanyForUser(user.id);
 
   if (!currentCompany) {
     redirect("/onboarding/company");

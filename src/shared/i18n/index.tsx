@@ -81,10 +81,12 @@ const translations = {
     "projectSummary.lowMargin": "Χαμηλό Περιθώριο",
     "projectSummary.loss": "Ζημιά",
     "projectSummary.noRevenue": "Χωρίς Έσοδα",
-    "projectSummary.noData": "Δεν υπάρχουν δεδομένα σύνοψης για την επιλογή σας.",
+    "projectSummary.noData":
+      "Δεν υπάρχουν δεδομένα σύνοψης για την επιλογή σας.",
     "projectSummary.alerts": "Ειδοποιήσεις",
     "projectSummary.lossMessage": "Το έργο εμφανίζει ζημιά.",
-    "projectSummary.lowMarginMessage": "Το έργο έχει περιθώριο κάτω από 10%.",
+    "projectSummary.lowMarginMessage":
+      "Το έργο έχει περιθώριο κάτω από 10%.",
     "projectSummary.noRevenueMessage":
       "Το έργο έχει κόστος αλλά δεν έχει έσοδα.",
     "reports.title": "Αναφορές",
@@ -167,107 +169,6 @@ const translations = {
 
 export type TranslationKey = keyof typeof translations.el;
 
-const extraTextTranslations = [
-  ["Νέο Έργο", "New Project"],
-  ["Νέος Εργαζόμενος", "New Employee"],
-  ["Νέος Μήνας", "New Month"],
-  ["Νέα Καταχώρηση", "New Entry"],
-  ["Νέα Πληρωμή", "New Payment"],
-  ["Νέο ΙΚΑ", "New IKA"],
-  ["Νέο Τιμολόγιο Υλικών", "New Material Invoice"],
-  ["Νέο Έξοδο", "New Expense"],
-  ["Νέο Έσοδο", "New Revenue"],
-  ["Αναζήτηση", "Search"],
-  ["Φίλτρα", "Filters"],
-  ["Ενέργειες", "Actions"],
-  ["Λεπτομέρειες", "Details"],
-  ["Προβολή", "View"],
-  ["Επεξεργασία", "Edit"],
-  ["Διαγραφή", "Delete"],
-  ["Αποθήκευση", "Save"],
-  ["Ακύρωση", "Cancel"],
-  ["Δημιουργία", "Create"],
-  ["Αλλαγή", "Change"],
-  ["Αποστολή πρόσκλησης", "Send invitation"],
-  ["Κωδικός", "Code"],
-  ["Όνομα Έργου", "Project Name"],
-  ["Πελάτης", "Client"],
-  ["Τοποθεσία", "Location"],
-  ["Προϋπολογισμός", "Budget"],
-  ["Έναρξη", "Start"],
-  ["Λήξη", "End"],
-  ["Κατάσταση", "Status"],
-  ["Ονοματεπώνυμο", "Full Name"],
-  ["Τύπος", "Type"],
-  ["Ημερομίσθιο", "Daily Rate"],
-  ["Ωρομίσθιο", "Hourly Rate"],
-  ["Σημειώσεις", "Notes"],
-  ["Ημερομηνία", "Date"],
-  ["Εργαζόμενος", "Employee"],
-  ["Ώρες", "Hours"],
-  ["Υπερωρίες", "Overtime"],
-  ["Περιγραφή", "Description"],
-  ["Έξοδα", "Expenses"],
-  ["Ποσό", "Amount"],
-  ["Τρόπος Πληρωμής", "Payment Method"],
-  ["Μετρητά", "Cash"],
-  ["Τράπεζα", "Bank"],
-  ["Άλλο", "Other"],
-  ["Προμηθευτής", "Supplier"],
-  ["ΑΦΜ Προμηθευτή", "Supplier VAT"],
-  ["Αριθμός Τιμολογίου", "Invoice Number"],
-  ["Καθαρή Αξία", "Net Amount"],
-  ["ΦΠΑ", "VAT"],
-  ["Σύνολο", "Total"],
-  ["Εκκρεμεί", "Pending"],
-  ["Πληρωμένο", "Paid"],
-  ["Γενικά Έξοδα", "General Expenses"],
-  ["Έξοδα Έδρας", "Office Expenses"],
-  ["Κατανομή", "Allocation"],
-  ["Κατηγορία", "Category"],
-  ["Μέθοδος Κατανομής", "Allocation Method"],
-  ["Τιμολογηθέντα", "Invoiced"],
-  ["Εισπραχθέντα", "Received"],
-  ["Υπόλοιπο", "Remaining"],
-  ["Τύπος Εσόδου", "Revenue Type"],
-  ["Τιμολόγιο", "Invoice"],
-  ["Προκαταβολή", "Advance"],
-  ["Εξόφληση", "Payment"],
-  ["Πιστωτικό", "Credit"],
-  ["Μερικώς", "Partial"],
-  ["Εξοφλημένο", "Paid"],
-  ["Ακυρωμένο", "Cancelled"],
-  ["Ανοιχτός", "Open"],
-  ["Κλειδωμένος", "Locked"],
-  ["Κλείδωμα", "Lock"],
-  ["Άνοιγμα", "Reopen"],
-  ["Καταχωρήσεις", "Entries"],
-  ["Έλεγχος", "Review"],
-  ["Αναφορές", "Reports"],
-  ["Εξαγωγή Excel", "Export Excel"],
-  ["Εξαγωγή PDF", "Export PDF"],
-  ["Δεν έχετε δικαίωμα πρόσβασης στις αναφορές.", "You do not have permission to access reports."],
-  ["Δεν έχετε δικαίωμα πρόσβασης στη σύνοψη έργου.", "You do not have permission to access project summary."],
-  ["Δεν έχετε δικαίωμα πρόσβασης στα έξοδα.", "You do not have permission to access expenses."],
-  ["Δεν έχετε δικαίωμα πρόσβασης στα έσοδα.", "You do not have permission to access revenues."],
-  ["Ο μήνας είναι κλειδωμένος και δεν επιτρέπονται αλλαγές.", "The month is locked and changes are not allowed."],
-  ["Δεν υπάρχουν δεδομένα.", "No data."],
-  ["Δεν υπάρχουν καταχωρήσεις.", "No entries."],
-] as const;
-
-const textTranslations = [
-  ...Object.keys(translations.el).map((key) => [
-    translations.el[key as TranslationKey],
-    translations.en[key as TranslationKey],
-  ] as const),
-  ...extraTextTranslations,
-];
-
-const elToEnText = new Map<string, string>(textTranslations);
-const enToElText = new Map<string, string>(
-  textTranslations.map(([el, en]) => [en, el]),
-);
-
 type LanguageContextValue = {
   language: AppLanguage;
   setLanguage: (language: AppLanguage) => void;
@@ -277,56 +178,10 @@ type LanguageContextValue = {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 function getInitialLanguage(): AppLanguage {
-  if (typeof window === "undefined") return "el";
-
   const storedLanguage =
     window.localStorage.getItem(storageKey) ??
     window.localStorage.getItem(legacyStorageKey);
   return storedLanguage === "en" ? "en" : "el";
-}
-
-function translateTextValue(value: string, language: AppLanguage): string {
-  const trimmedValue = value.trim();
-  const translatedValue =
-    language === "en" ? elToEnText.get(trimmedValue) : enToElText.get(trimmedValue);
-
-  if (!translatedValue) return value;
-
-  const leadingWhitespace = value.match(/^\s*/)?.[0] ?? "";
-  const trailingWhitespace = value.match(/\s*$/)?.[0] ?? "";
-  return `${leadingWhitespace}${translatedValue}${trailingWhitespace}`;
-}
-
-function translateOptionElements(root: ParentNode, language: AppLanguage) {
-  root.querySelectorAll("option").forEach((option) => {
-    option.textContent = translateTextValue(option.textContent ?? "", language);
-  });
-}
-
-function translateTextNodes(root: ParentNode, language: AppLanguage) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let currentNode = walker.nextNode();
-
-  while (currentNode) {
-    const parentElement = currentNode.parentElement;
-
-    if (
-      parentElement &&
-      !["SCRIPT", "STYLE", "TEXTAREA"].includes(parentElement.tagName)
-    ) {
-      currentNode.textContent = translateTextValue(
-        currentNode.textContent ?? "",
-        language,
-      );
-    }
-
-    currentNode = walker.nextNode();
-  }
-}
-
-function translateDocument(language: AppLanguage) {
-  translateTextNodes(document.body, language);
-  translateOptionElements(document.body, language);
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -334,18 +189,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
-      setLanguageState(getInitialLanguage());
+      const storedLanguage = getInitialLanguage();
+      setLanguageState((currentLanguage) =>
+        currentLanguage === storedLanguage ? currentLanguage : storedLanguage,
+      );
     });
 
     return () => window.cancelAnimationFrame(frameId);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const value = useMemo<LanguageContextValue>(() => {
     function setLanguage(nextLanguage: AppLanguage) {
       setLanguageState(nextLanguage);
       window.localStorage.setItem(storageKey, nextLanguage);
       window.localStorage.removeItem(legacyStorageKey);
-      document.documentElement.lang = nextLanguage;
     }
 
     return {
@@ -353,45 +214,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setLanguage,
       t: (key) => translations[language][key] ?? translations.el[key],
     };
-  }, [language]);
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-  }, [language]);
-
-  useEffect(() => {
-    translateDocument(language);
-
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.TEXT_NODE) {
-            node.textContent = translateTextValue(node.textContent ?? "", language);
-            return;
-          }
-
-          if (node instanceof HTMLElement) {
-            translateTextNodes(node, language);
-            translateOptionElements(node, language);
-          }
-        });
-
-        if (mutation.type === "characterData") {
-          mutation.target.textContent = translateTextValue(
-            mutation.target.textContent ?? "",
-            language,
-          );
-        }
-      }
-    });
-
-    observer.observe(document.body, {
-      characterData: true,
-      childList: true,
-      subtree: true,
-    });
-
-    return () => observer.disconnect();
   }, [language]);
 
   return (

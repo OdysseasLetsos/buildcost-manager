@@ -3,7 +3,21 @@ import { getPostAuthRedirectPath, readSafeNextPath } from "@/src/core/auth/redir
 import { createClient } from "@/src/integrations/supabase/server";
 
 const invalidLinkMessage =
-  "Ο σύνδεσμος σύνδεσης έχει λήξει ή δεν είναι έγκυρος.";
+  "Ο σύνδεσμος επιβεβαίωσης έχει λήξει ή δεν είναι έγκυρος. Ζητήστε νέο σύνδεσμο.";
+const rateLimitMessage =
+  "Πάρα πολλά αιτήματα. Παρακαλώ περιμένετε λίγο και δοκιμάστε ξανά.";
+
+function isRateLimitError(error: {
+  code?: string;
+  message?: string;
+  status?: number;
+}): boolean {
+  return (
+    error.code === "over_request_rate_limit" ||
+    error.status === 429 ||
+    error.message?.toLowerCase().includes("request rate limit") === true
+  );
+}
 
 function redirectToLoginWithError(request: NextRequest, message: string): NextResponse {
   const redirectUrl = new URL("/login", request.url);
@@ -26,7 +40,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       description: requestUrl.searchParams.get("error_description"),
     });
 
-    return redirectToLoginWithError(request, invalidLinkMessage);
+    return redirectToLoginWithError(
+      request,
+      authErrorCode === "over_request_rate_limit"
+        ? rateLimitMessage
+        : invalidLinkMessage,
+    );
   }
 
   if (!code) {
@@ -43,7 +62,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       status: error.status,
     });
 
-    return redirectToLoginWithError(request, invalidLinkMessage);
+    return redirectToLoginWithError(
+      request,
+      isRateLimitError(error) ? rateLimitMessage : invalidLinkMessage,
+    );
   }
 
   const redirectPath = await getPostAuthRedirectPath(supabase, nextPath);

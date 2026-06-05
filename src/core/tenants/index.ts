@@ -37,11 +37,21 @@ export async function getCurrentCompany(): Promise<CurrentCompany | null> {
     return null;
   }
 
+  return getCurrentCompanyForUser(user.id);
+}
+
+export async function getCurrentCompanyForUser(
+  userId: string,
+): Promise<CurrentCompany | null> {
+  if (!userId) {
+    return null;
+  }
+
   const supabase = await createClient();
   const { data: membership, error: membershipError } = await supabase
     .from("company_members")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("status", "active")
     .order("created_at", { ascending: true })
     .limit(1)
