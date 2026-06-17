@@ -45,18 +45,13 @@ export default async function ProjectSummaryPage() {
     (period) => period.status === "open" && !period.is_locked,
   );
   const defaultMonthId = latestOpenMonth?.id ?? monthlyPeriods[0]?.id ?? "";
-  const reportEntries = await Promise.all(
-    monthlyPeriods.map(
-      async (period) =>
-        [period.id, await getProjectSummary(companyId, period.id)] as const,
-    ),
-  );
+  const defaultReport = await getProjectSummary(companyId, defaultMonthId);
 
   return (
     <ProjectSummaryPageClient
       monthlyPeriods={monthlyPeriods}
       defaultMonthId={defaultMonthId}
-      reportsByMonth={Object.fromEntries(reportEntries)}
+      reportsByMonth={defaultMonthId ? { [defaultMonthId]: defaultReport } : {}}
     />
   );
 }

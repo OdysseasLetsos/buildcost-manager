@@ -120,6 +120,20 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
   );
 }
 
+function BrandMark() {
+  return (
+    <span className="relative flex h-12 w-12 shrink-0 items-end justify-center overflow-hidden rounded-xl border border-white/25 bg-white/12 text-white shadow-lg shadow-blue-950/20">
+      <span className="absolute bottom-2 left-2.5 h-5 w-2 rounded-t-sm bg-white" />
+      <span className="absolute bottom-2 left-5 h-8 w-2 rounded-t-sm bg-cyan-100" />
+      <span className="absolute bottom-2 right-2.5 h-6 w-2 rounded-t-sm bg-sky-200" />
+      <span className="absolute bottom-1.5 h-1 w-8 rounded-full bg-white/75" />
+      <span className="absolute left-3 top-3 h-1 w-1 rounded-full bg-sky-700/70" />
+      <span className="absolute left-6 top-2.5 h-1 w-1 rounded-full bg-sky-700/70" />
+      <span className="absolute right-3.5 top-3.5 h-1 w-1 rounded-full bg-sky-700/70" />
+    </span>
+  );
+}
+
 export function AppShell({
   children,
   userEmail,
@@ -145,26 +159,24 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
-      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-gradient-to-b from-blue-950 via-slate-950 to-slate-900 px-4 py-5 text-white shadow-2xl shadow-slate-950/20 lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col overflow-y-auto border-r border-cyan-200/15 bg-gradient-to-b from-sky-800 via-blue-800 to-blue-950 px-4 py-5 text-white shadow-2xl shadow-blue-950/20 lg:flex">
         <Link
           href="/dashboard"
-          className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-sm shadow-slate-950/20 transition hover:bg-white/15"
+          className="group flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-3.5 shadow-sm shadow-blue-950/20 transition hover:border-white/25 hover:bg-white/15"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-sm font-black tracking-tight text-blue-950 shadow-sm">
-            BC
-          </span>
+          <BrandMark />
           <span className="min-w-0">
-            <span className="block truncate text-base font-semibold tracking-wide">
-              BuildCost Manager
+            <span className="block truncate text-xl font-black leading-5 tracking-tight text-white">
+              BuildCost
             </span>
-            <span className="mt-0.5 block text-xs font-medium text-blue-100">
-              Διαχείριση Κόστους
+            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100">
+              Manager
             </span>
           </span>
         </Link>
 
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.06] p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-200">
+        <div className="mt-6 rounded-2xl border border-white/15 bg-white/[0.08] p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
             Πλοήγηση
           </p>
         </div>
@@ -178,7 +190,7 @@ export function AppShell({
               className={`group flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
                 isActiveNavigationItem(item.href)
                   ? "bg-white text-blue-950 shadow-lg shadow-slate-950/20"
-                  : "text-blue-50/85 hover:bg-white/10 hover:text-white"
+                  : "text-cyan-50/90 hover:bg-white/10 hover:text-white"
               }`}
             >
               <span className="flex min-w-0 items-center gap-3">
@@ -189,18 +201,18 @@ export function AppShell({
                 className={`h-1.5 w-1.5 rounded-full transition ${
                   isActiveNavigationItem(item.href)
                     ? "bg-blue-700"
-                    : "bg-transparent group-hover:bg-blue-200"
+                    : "bg-transparent group-hover:bg-cyan-100"
                 }`}
               />
             </Link>
           ))}
         </nav>
 
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-          <p className="text-xs font-semibold text-blue-100">
+        <div className="mt-6 rounded-2xl border border-white/15 bg-white/[0.08] p-4">
+          <p className="text-xs font-semibold text-cyan-50">
             {companyName ?? "BuildCost Manager"}
           </p>
-          <p className="mt-1 truncate text-xs text-blue-100/70">
+          <p className="mt-1 truncate text-xs text-cyan-50/70">
             {userEmail ?? "Χρήστης"}
           </p>
         </div>
