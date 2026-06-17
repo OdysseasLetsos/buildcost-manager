@@ -1,6 +1,3 @@
-"use client";
-
-import { useTranslation } from "@/src/shared/i18n";
 import type { ProjectSummaryTotals } from "../types";
 
 const currencyFormatter = new Intl.NumberFormat("el-GR", {
@@ -18,15 +15,11 @@ export function ProjectSummaryKpiCards({
 }: Readonly<{
   totals: ProjectSummaryTotals;
 }>) {
-  const { t } = useTranslation();
   const cards = [
-    [t("projectSummary.revenue"), currencyFormatter.format(totals.invoicedRevenue)],
-    [t("projectSummary.totalCost"), currencyFormatter.format(totals.totalCost)],
-    [t("projectSummary.profitLoss"), currencyFormatter.format(totals.profit)],
-    [
-      t("projectSummary.margin"),
-      totals.margin === null ? "-" : percentFormatter.format(totals.margin),
-    ],
+    ["Έσοδα", currencyFormatter.format(totals.invoicedRevenue)],
+    ["Συνολικό Κόστος", currencyFormatter.format(totals.totalCost)],
+    ["Κέρδος / Ζημιά", currencyFormatter.format(totals.profit)],
+    ["Περιθώριο", totals.margin === null ? "-" : percentFormatter.format(totals.margin)],
   ];
 
   return (

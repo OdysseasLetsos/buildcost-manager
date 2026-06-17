@@ -1,6 +1,3 @@
-"use client";
-
-import { useTranslation } from "@/src/shared/i18n";
 import type {
   DashboardDailyWorkStats,
   DashboardFinancials,
@@ -35,22 +32,21 @@ export function DashboardSummaryCards({
   financials: DashboardFinancials | null;
   canViewFinancials: boolean;
 }>) {
-  const { t } = useTranslation();
   const financialMetrics: DashboardSummaryMetric[] = [
     {
-      label: t("dashboard.totalRevenue"),
+      label: "Σύνολο Εσόδων",
       value: currencyFormatter.format(financials?.invoicedRevenue ?? 0),
       helper: "Τιμολογηθέντα έσοδα μήνα.",
       tone: "emerald",
     },
     {
-      label: t("dashboard.totalCost"),
+      label: "Συνολικό Κόστος",
       value: currencyFormatter.format(financials?.totalCost ?? 0),
       helper: "Κόστος από Project Summary.",
       tone: "amber",
     },
     {
-      label: t("dashboard.monthProfit"),
+      label: "Κέρδος Μήνα",
       value: currencyFormatter.format(financials?.profit ?? 0),
       helper:
         financials?.margin === null || financials?.margin === undefined
@@ -59,7 +55,7 @@ export function DashboardSummaryCards({
       tone: (financials?.profit ?? 0) < 0 ? "amber" : "blue",
     },
     {
-      label: t("dashboard.activeProjects"),
+      label: "Ενεργά Έργα",
       value: String(projectStats.activeProjects),
       helper: `${projectStats.totalProjects} συνολικά έργα.`,
       tone: "slate",
@@ -68,25 +64,25 @@ export function DashboardSummaryCards({
 
   const operationalMetrics: DashboardSummaryMetric[] = [
     {
-      label: t("dashboard.activeProjects"),
+      label: "Ενεργά Έργα",
       value: String(projectStats.activeProjects),
       helper: `${projectStats.totalProjects} συνολικά έργα.`,
       tone: "slate",
     },
     {
-      label: t("dashboard.totalHours"),
+      label: "Σύνολο Ωρών",
       value: numberFormatter.format(dailyWorkStats.totalHours),
       helper: `${dailyWorkStats.totalEntries} καταχωρήσεις στον επιλεγμένο μήνα.`,
       tone: "blue",
     },
     {
-      label: t("dashboard.overtime"),
+      label: "Υπερωρίες",
       value: numberFormatter.format(dailyWorkStats.totalOvertimeHours),
       helper: "Πραγματικές υπερωρίες από ημερήσια εργασία.",
       tone: "amber",
     },
     {
-      label: t("dashboard.employeeExpenses"),
+      label: "Έξοδα Εργαζομένων",
       value: currencyFormatter.format(dailyWorkStats.totalExpenseAmount),
       helper: "Ποσά εξόδων από ημερήσιες καταχωρήσεις.",
       tone: "emerald",
@@ -102,9 +98,7 @@ export function DashboardSummaryCards({
           key={metric.label}
           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60"
         >
-          <div
-            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${toneClassNames[metric.tone]}`}
-          >
+          <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${toneClassNames[metric.tone]}`}>
             {metric.label}
           </div>
           <p className="mt-4 text-3xl font-semibold text-slate-950">{metric.value}</p>

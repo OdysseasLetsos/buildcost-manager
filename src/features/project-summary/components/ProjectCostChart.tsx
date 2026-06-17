@@ -1,6 +1,3 @@
-"use client";
-
-import { useTranslation } from "@/src/shared/i18n";
 import type { ProjectSummaryCostBreakdown } from "../types";
 
 const currencyFormatter = new Intl.NumberFormat("el-GR", {
@@ -13,21 +10,18 @@ export function ProjectCostChart({
 }: Readonly<{
   costs: ProjectSummaryCostBreakdown;
 }>) {
-  const { t } = useTranslation();
   const items = [
-    [t("projectSummary.payments"), costs.allocatedPayments],
-    [t("projectSummary.ika"), costs.allocatedIka],
-    [t("projectSummary.materials"), costs.materialsCost],
-    [t("projectSummary.employeeExpenses"), costs.employeeExpenses],
-    [t("projectSummary.allocatedExpenses"), costs.allocatedExpenses],
+    ["Πληρωμές", costs.allocatedPayments],
+    ["ΙΚΑ", costs.allocatedIka],
+    ["Υλικά", costs.materialsCost],
+    ["Έξοδα Εργαζομένων", costs.employeeExpenses],
+    ["Γενικά / Έδρα Έξοδα", costs.allocatedExpenses],
   ];
   const maxAmount = Math.max(...items.map(([, amount]) => Number(amount)), 1);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-950">
-        {t("projectSummary.costDistribution")}
-      </h3>
+      <h3 className="text-lg font-semibold text-slate-950">Κατανομή Κόστους</h3>
       <div className="mt-5 space-y-4">
         {items.map(([label, amount]) => {
           const numericAmount = Number(amount);

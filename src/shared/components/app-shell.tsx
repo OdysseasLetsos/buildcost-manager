@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslation, type TranslationKey } from "@/src/shared/i18n";
 
 export type NavigationIconName =
   | "dashboard"
@@ -22,7 +21,6 @@ export type NavigationIconName =
 export type NavigationItem = {
   href: string;
   label: string;
-  labelKey?: TranslationKey;
   icon: NavigationIconName;
 };
 
@@ -122,17 +120,6 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
   );
 }
 
-function BrandMark() {
-  return (
-    <span className="relative flex h-12 w-12 shrink-0 items-end justify-center overflow-hidden rounded-2xl bg-white text-blue-950 shadow-sm ring-1 ring-blue-100">
-      <span className="absolute bottom-2 left-2 h-5 w-2 rounded-t-sm bg-blue-950" />
-      <span className="absolute bottom-2 left-5 h-8 w-2 rounded-t-sm bg-blue-700" />
-      <span className="absolute bottom-2 right-2 h-6 w-2 rounded-t-sm bg-sky-500" />
-      <span className="absolute bottom-1 h-1 w-8 rounded-full bg-blue-100" />
-    </span>
-  );
-}
-
 export function AppShell({
   children,
   userEmail,
@@ -147,7 +134,6 @@ export function AppShell({
   logoutAction: () => Promise<void>;
 }>) {
   const pathname = usePathname();
-  const { t } = useTranslation();
 
   function isActiveNavigationItem(href: string): boolean {
     if (href === "/dashboard") {
@@ -157,10 +143,6 @@ export function AppShell({
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  function getNavigationLabel(item: NavigationItem): string {
-    return item.labelKey ? t(item.labelKey) : item.label;
-  }
-
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
       <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-gradient-to-b from-blue-950 via-slate-950 to-slate-900 px-4 py-5 text-white shadow-2xl shadow-slate-950/20 lg:flex">
@@ -168,20 +150,22 @@ export function AppShell({
           href="/dashboard"
           className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-sm shadow-slate-950/20 transition hover:bg-white/15"
         >
-          <BrandMark />
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-sm font-black tracking-tight text-blue-950 shadow-sm">
+            BC
+          </span>
           <span className="min-w-0">
-            <span className="block truncate text-lg font-black tracking-tight">
-              BuildCost
+            <span className="block truncate text-base font-semibold tracking-wide">
+              BuildCost Manager
             </span>
-            <span className="mt-0.5 block text-xs font-semibold uppercase tracking-[0.22em] text-blue-100">
-              Manager
+            <span className="mt-0.5 block text-xs font-medium text-blue-100">
+              Διαχείριση Κόστους
             </span>
           </span>
         </Link>
 
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.06] p-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-200">
-            {t("app.workspace")}
+            Πλοήγηση
           </p>
         </div>
 
@@ -199,7 +183,7 @@ export function AppShell({
             >
               <span className="flex min-w-0 items-center gap-3">
                 <NavigationIcon name={item.icon} />
-                <span className="truncate">{getNavigationLabel(item)}</span>
+                <span className="truncate">{item.label}</span>
               </span>
               <span
                 className={`h-1.5 w-1.5 rounded-full transition ${
@@ -217,7 +201,7 @@ export function AppShell({
             {companyName ?? "BuildCost Manager"}
           </p>
           <p className="mt-1 truncate text-xs text-blue-100/70">
-            {userEmail ?? t("app.user")}
+            {userEmail ?? "Χρήστης"}
           </p>
         </div>
       </aside>
@@ -228,7 +212,7 @@ export function AppShell({
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">
-                  {t("app.workspace")}
+                  Πίνακας εργασίας
                 </p>
                 <h1 className="mt-1 text-lg font-semibold text-slate-950">
                   {companyName ?? "BuildCost Manager"}
@@ -236,14 +220,14 @@ export function AppShell({
               </div>
               <div className="flex min-w-0 items-center gap-3">
                 <span className="hidden max-w-64 truncate rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm md:inline">
-                  {userEmail ?? t("app.user")}
+                  {userEmail ?? "Χρήστης"}
                 </span>
                 <form action={logoutAction}>
                   <button
                     type="submit"
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                   >
-                    {t("app.logout")}
+                    Αποσύνδεση
                   </button>
                 </form>
               </div>
@@ -266,7 +250,7 @@ export function AppShell({
                 >
                   <span className="inline-flex items-center gap-2">
                     <NavigationIcon name={item.icon} />
-                    {getNavigationLabel(item)}
+                    {item.label}
                   </span>
                 </Link>
               ))}

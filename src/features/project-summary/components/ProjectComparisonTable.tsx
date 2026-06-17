@@ -1,6 +1,3 @@
-"use client";
-
-import { useTranslation } from "@/src/shared/i18n";
 import type { ProjectSummaryRow, ProjectSummaryStatus } from "../types";
 
 const currencyFormatter = new Intl.NumberFormat("el-GR", {
@@ -17,6 +14,13 @@ const percentFormatter = new Intl.NumberFormat("el-GR", {
   maximumFractionDigits: 1,
 });
 
+const statusLabels: Record<ProjectSummaryStatus, string> = {
+  healthy: "Υγιές",
+  low_margin: "Χαμηλό Περιθώριο",
+  loss: "Ζημιά",
+  no_revenue: "Χωρίς Έσοδα",
+};
+
 const statusClasses: Record<ProjectSummaryStatus, string> = {
   healthy: "bg-emerald-50 text-emerald-800",
   low_margin: "bg-amber-50 text-amber-800",
@@ -29,34 +33,26 @@ export function ProjectComparisonTable({
 }: Readonly<{
   projects: ProjectSummaryRow[];
 }>) {
-  const { t } = useTranslation();
-  const statusLabels: Record<ProjectSummaryStatus, string> = {
-    healthy: t("projectSummary.healthy"),
-    low_margin: t("projectSummary.lowMargin"),
-    loss: t("projectSummary.loss"),
-    no_revenue: t("projectSummary.noRevenue"),
-  };
-
   return (
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1480px] table-fixed text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-[0.08em] text-slate-500">
             <tr>
-              <th className="w-52 px-3 py-3">{t("projectSummary.project")}</th>
-              <th className="w-20 px-3 py-3 text-right">{t("projectSummary.hours")}</th>
-              <th className="w-24 px-3 py-3 text-right">{t("projectSummary.overtime")}</th>
-              <th className="w-28 px-3 py-3 text-right">{t("projectSummary.payments")}</th>
-              <th className="w-28 px-3 py-3 text-right">{t("projectSummary.ika")}</th>
-              <th className="w-28 px-3 py-3 text-right">{t("projectSummary.materials")}</th>
-              <th className="w-28 px-3 py-3 text-right">{t("projectSummary.expenses")}</th>
-              <th className="w-32 px-3 py-3 text-right">{t("projectSummary.totalCost")}</th>
-              <th className="w-32 px-3 py-3 text-right">{t("projectSummary.revenue")}</th>
-              <th className="w-32 px-3 py-3 text-right">{t("projectSummary.received")}</th>
-              <th className="w-28 px-3 py-3 text-right">{t("projectSummary.remaining")}</th>
-              <th className="w-28 px-3 py-3 text-right">{t("projectSummary.profit")}</th>
-              <th className="w-24 px-3 py-3 text-right">{t("projectSummary.margin")}</th>
-              <th className="w-40 px-3 py-3">{t("projectSummary.status")}</th>
+              <th className="w-52 px-3 py-3">Έργο</th>
+              <th className="w-20 px-3 py-3 text-right">Ώρες</th>
+              <th className="w-24 px-3 py-3 text-right">Υπερωρίες</th>
+              <th className="w-28 px-3 py-3 text-right">Πληρωμές</th>
+              <th className="w-28 px-3 py-3 text-right">ΙΚΑ</th>
+              <th className="w-28 px-3 py-3 text-right">Υλικά</th>
+              <th className="w-28 px-3 py-3 text-right">Έξοδα</th>
+              <th className="w-32 px-3 py-3 text-right">Συνολικό Κόστος</th>
+              <th className="w-32 px-3 py-3 text-right">Έσοδα</th>
+              <th className="w-32 px-3 py-3 text-right">Εισπραχθέντα</th>
+              <th className="w-28 px-3 py-3 text-right">Υπόλοιπο</th>
+              <th className="w-28 px-3 py-3 text-right">Κέρδος</th>
+              <th className="w-24 px-3 py-3 text-right">Περιθώριο</th>
+              <th className="w-40 px-3 py-3">Κατάσταση</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -89,7 +85,7 @@ export function ProjectComparisonTable({
             {projects.length === 0 ? (
               <tr>
                 <td colSpan={14} className="px-4 py-8 text-center text-slate-500">
-                  {t("projectSummary.noData")}
+                  Δεν υπάρχουν δεδομένα σύνοψης για τον επιλεγμένο μήνα.
                 </td>
               </tr>
             ) : null}

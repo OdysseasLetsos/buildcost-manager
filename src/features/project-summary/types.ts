@@ -1,7 +1,5 @@
 export type ProjectSummaryStatus = "healthy" | "low_margin" | "loss" | "no_revenue";
 
-export const PROJECT_SUMMARY_ALL_MONTHS_VALUE = "__all_months";
-
 export type ProjectSummaryWarning = {
   type: "payments" | "ika" | "expenses";
   message: string;
