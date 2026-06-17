@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LoginForm } from "./LoginForm";
+import { login } from "@/src/core/auth";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -11,7 +11,6 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const nextPath = params?.next ?? "/dashboard";
   const registerHref = params?.next
     ? `/register?next=${encodeURIComponent(params.next)}`
     : "/register";
@@ -37,7 +36,38 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
         ) : null}
 
-        <LoginForm nextPath={nextPath} />
+        <form action={login} className="mt-6 flex flex-col gap-4">
+          <input type="hidden" name="next" value={params?.next ?? "/dashboard"} />
+
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Email
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Κωδικός
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <button
+            type="submit"
+            className="mt-2 rounded-lg bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-900"
+          >
+            Σύνδεση
+          </button>
+        </form>
 
         <div className="mt-6 flex items-center justify-between text-sm">
           <Link href={registerHref} className="font-medium text-blue-800 hover:text-blue-950">

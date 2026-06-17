@@ -3,7 +3,7 @@ import { getPostAuthRedirectPath, readSafeNextPath } from "@/src/core/auth/redir
 import { createClient } from "@/src/integrations/supabase/server";
 
 const invalidLinkMessage =
-  "Ο σύνδεσμος σύνδεσης έχει λήξει ή δεν είναι έγκυρος.";
+  "Ο σύνδεσμος επιβεβαίωσης έχει λήξει ή δεν είναι έγκυρος. Ζητήστε νέο σύνδεσμο.";
 
 function redirectToLoginWithError(request: NextRequest, message: string): NextResponse {
   const redirectUrl = new URL("/login", request.url);

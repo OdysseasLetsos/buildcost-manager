@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { RegisterForm } from "./RegisterForm";
+import { register } from "@/src/core/auth";
 
 type RegisterPageProps = {
   searchParams?: Promise<{
@@ -11,7 +11,6 @@ type RegisterPageProps = {
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
-  const nextPath = params?.next ?? "/dashboard";
   const loginHref = params?.next
     ? `/login?next=${encodeURIComponent(params.next)}`
     : "/login";
@@ -37,7 +36,39 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           </p>
         ) : null}
 
-        <RegisterForm nextPath={nextPath} />
+        <form action={register} className="mt-6 flex flex-col gap-4">
+          <input type="hidden" name="next" value={params?.next ?? "/dashboard"} />
+
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Email
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Κωδικός
+            <input
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={6}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <button
+            type="submit"
+            className="mt-2 rounded-lg bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-900"
+          >
+            Δημιουργία λογαριασμού
+          </button>
+        </form>
 
         <p className="mt-6 text-sm text-slate-600">
           Έχετε ήδη λογαριασμό;{" "}
