@@ -33,6 +33,9 @@ export function ProjectSummaryFilters({
               {period.month_key}
             </option>
           ))}
+          {monthlyPeriods.length >= 2 ? (
+            <option value="all">Όλοι οι μήνες</option>
+          ) : null}
         </select>
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">

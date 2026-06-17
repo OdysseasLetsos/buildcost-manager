@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { ProjectSummaryReport, ProjectSummaryTotals } from "../types";
+import { loadProjectSummaryReport } from "../actions/load-project-summary-report";
 import {
   addCostBreakdown,
   calculateTotalCost,
@@ -43,6 +44,15 @@ function totalsForProjects(projects: ProjectSummaryReport["projects"]): ProjectS
   return totals;
 }
 
+function emptyReport(monthId: string): ProjectSummaryReport {
+  return {
+    monthId,
+    projects: [],
+    totals: totalsForProjects([]),
+    warnings: [],
+  };
+}
+
 export function ProjectSummaryPageClient({
   monthlyPeriods,
   defaultMonthId,
@@ -54,13 +64,12 @@ export function ProjectSummaryPageClient({
 }>) {
   const [monthId, setMonthId] = useState(defaultMonthId);
   const [projectId, setProjectId] = useState("");
+  const [reportCache, setReportCache] = useState(reportsByMonth);
+  const [loadingMonthId, setLoadingMonthId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const effectiveMonthId = monthId || defaultMonthId;
-  const report = reportsByMonth[effectiveMonthId] ?? {
-    monthId: effectiveMonthId,
-    projects: [],
-    totals: totalsForProjects([]),
-    warnings: [],
-  };
+  const report = reportCache[effectiveMonthId] ?? emptyReport(effectiveMonthId);
+  const isLoading = loadingMonthId === effectiveMonthId;
   const visibleProjects = useMemo(
     () =>
       projectId
@@ -73,6 +82,32 @@ export function ProjectSummaryPageClient({
     : null;
   const totals = selectedProject ? totalsForProjects([selectedProject]) : report.totals;
   const breakdownCosts = selectedProject ? selectedProject.costs : totals.costs;
+
+  async function handleMonthChange(value: string) {
+    setMonthId(value);
+    setProjectId("");
+    setErrorMessage("");
+
+    if (!value || reportCache[value]) {
+      return;
+    }
+
+    setLoadingMonthId(value);
+    const result = await loadProjectSummaryReport(value);
+
+    if (result.report) {
+      setReportCache((currentReports) => ({
+        ...currentReports,
+        [value]: result.report,
+      }));
+    } else {
+      setErrorMessage(result.error);
+    }
+
+    setLoadingMonthId((currentValue) =>
+      currentValue === value ? null : currentValue,
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-6">
@@ -89,12 +124,21 @@ export function ProjectSummaryPageClient({
         projectId={projectId}
         monthlyPeriods={monthlyPeriods}
         projects={report.projects}
-        onMonthChange={(value) => {
-          setMonthId(value);
-          setProjectId("");
-        }}
+        onMonthChange={(value) => void handleMonthChange(value)}
         onProjectChange={setProjectId}
       />
+
+      {isLoading ? (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-800">
+          Υπολογισμός σύνοψης...
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-800">
+          {errorMessage}
+        </div>
+      ) : null}
 
       <ProjectSummaryKpiCards totals={totals} />
       <LowMarginAlerts projects={visibleProjects} warnings={report.warnings} />
