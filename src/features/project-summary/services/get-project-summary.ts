@@ -147,8 +147,10 @@ export async function getProjectSummary(
   const expenses = (expensesResult.data ?? []) as ExpenseAllocationRow[];
   const revenues = (revenuesResult.data ?? []) as RevenueSummaryRow[];
   const employeeNames = new Map(employees.map((employee) => [employee.id, employee.full_name]));
-  const activeProjects = projects.filter((project) =>
-    ["active", "in_progress"].includes(project.status),
+  // Stored "active" projects represent the offer stage in the Projects UI.
+  // Only in-progress projects participate in active-project allocations.
+  const activeProjects = projects.filter(
+    (project) => project.status === "in_progress",
   );
 
   const revenuesByProject = calculateRevenueSummary(revenues);

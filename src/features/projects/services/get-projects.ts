@@ -1,5 +1,11 @@
 import { createClient } from "@/src/integrations/supabase/server";
-import type { Project, ProjectFilters, ProjectStatus } from "../types";
+import {
+  toProjectStatus,
+  toStoredProjectStatus,
+  type ManagedProject,
+  type Project,
+  type ProjectFilters,
+} from "../types";
 
 export async function getProjects(
   companyId: string,
@@ -22,7 +28,7 @@ export async function getProjects(
   }
 
   if (filters.status && filters.status !== "all") {
-    query = query.eq("status", filters.status as ProjectStatus);
+    query = query.eq("status", toStoredProjectStatus(filters.status));
   }
 
   const { data, error } = await query;
@@ -39,4 +45,16 @@ export async function getProjects(
   }
 
   return (data ?? []) as Project[];
+}
+
+export async function getManagedProjects(
+  companyId: string,
+  filters: ProjectFilters = {},
+): Promise<ManagedProject[]> {
+  const projects = await getProjects(companyId, filters);
+
+  return projects.map((project) => ({
+    ...project,
+    status: toProjectStatus(project.status),
+  }));
 }

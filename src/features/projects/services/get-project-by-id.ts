@@ -1,5 +1,9 @@
 import { createClient } from "@/src/integrations/supabase/server";
-import type { Project } from "../types";
+import {
+  toProjectStatus,
+  type ManagedProject,
+  type Project,
+} from "../types";
 
 export async function getProjectById(
   companyId: string,
@@ -25,4 +29,18 @@ export async function getProjectById(
   }
 
   return data as Project | null;
+}
+
+export async function getManagedProjectById(
+  companyId: string,
+  projectId: string,
+): Promise<ManagedProject | null> {
+  const project = await getProjectById(companyId, projectId);
+
+  return project
+    ? {
+        ...project,
+        status: toProjectStatus(project.status),
+      }
+    : null;
 }

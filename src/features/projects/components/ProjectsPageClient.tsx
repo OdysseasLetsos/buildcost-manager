@@ -4,12 +4,16 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProject } from "../actions/create-project";
 import { updateProject } from "../actions/update-project";
-import type { Project, ProjectStatus } from "../types";
+import type {
+  ManagedProject,
+  ProjectQuote,
+  ProjectStatus,
+} from "../types";
 import { ProjectFilters } from "./ProjectFilters";
 import { ProjectForm } from "./ProjectForm";
 import { ProjectsTable } from "./ProjectsTable";
 
-function projectMatchesSearch(project: Project, search: string): boolean {
+function projectMatchesSearch(project: ManagedProject, search: string): boolean {
   const normalizedSearch = search.trim().toLowerCase();
 
   if (!normalizedSearch) {
@@ -26,10 +30,12 @@ function projectMatchesSearch(project: Project, search: string): boolean {
 
 export function ProjectsPageClient({
   projects,
+  quotes,
   canManage,
   featureAvailable,
 }: Readonly<{
-  projects: Project[];
+  projects: ManagedProject[];
+  quotes: ProjectQuote[];
   canManage: boolean;
   featureAvailable: boolean;
 }>) {
@@ -37,7 +43,8 @@ export function ProjectsPageClient({
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProjectStatus | "all">("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] =
+    useState<ManagedProject | null>(null);
 
   const filteredProjects = useMemo(
     () =>
@@ -56,6 +63,9 @@ export function ProjectsPageClient({
   }
 
   const canMutateProjects = canManage && featureAvailable;
+  const editingProjectQuotes = editingProject
+    ? quotes.filter((quote) => quote.project_id === editingProject.id)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -71,7 +81,10 @@ export function ProjectsPageClient({
         {canMutateProjects ? (
           <button
             type="button"
-            onClick={() => setShowCreateForm((value) => !value)}
+            onClick={() => {
+              setEditingProject(null);
+              setShowCreateForm((value) => !value);
+            }}
             className="rounded-lg bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-900"
           >
             Νέο Έργο
@@ -121,8 +134,10 @@ export function ProjectsPageClient({
           </div>
           <div className="mt-5">
             <ProjectForm
+              key={editingProject.id}
               action={updateProject}
               project={editingProject}
+              quotes={editingProjectQuotes}
               submitLabel="Αποθήκευση Αλλαγών"
               onSuccess={handleMutationSuccess}
             />
@@ -140,7 +155,10 @@ export function ProjectsPageClient({
       <ProjectsTable
         projects={filteredProjects}
         canManage={canMutateProjects}
-        onEditProject={setEditingProject}
+        onEditProject={(project) => {
+          setShowCreateForm(false);
+          setEditingProject(project);
+        }}
       />
     </div>
   );

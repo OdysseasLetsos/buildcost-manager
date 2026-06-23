@@ -10,9 +10,17 @@ import {
   requireCompanyMember,
 } from "@/src/core/tenants";
 import { createClient } from "@/src/integrations/supabase/server";
-import type { ProjectActionState } from "../types";
-import { getProjectById } from "../services/get-project-by-id";
-import { projectIdSchema, projectInputSchema } from "../validators";
+import {
+  isAllowedProjectStatusTransition,
+  toStoredProjectStatus,
+  type ProjectActionState,
+} from "../types";
+import { getManagedProjectById } from "../services/get-project-by-id";
+import {
+  normalizeProjectDates,
+  projectIdSchema,
+  projectInputSchema,
+} from "../validators";
 
 function mapValidationErrors(
   validation: ReturnType<typeof projectInputSchema.safeParse>,
@@ -56,7 +64,7 @@ export async function updateProject(
     return { ok: false, message: "Το έργο δεν είναι έγκυρο." };
   }
 
-  const existingProject = await getProjectById(companyId, projectId.data);
+  const existingProject = await getManagedProjectById(companyId, projectId.data);
 
   if (!existingProject) {
     return { ok: false, message: "Το έργο δεν βρέθηκε." };
@@ -69,8 +77,10 @@ export async function updateProject(
     location: formData.get("location"),
     status: formData.get("status"),
     budgetAmount: formData.get("budgetAmount"),
-    startDate: formData.get("startDate"),
-    endDate: formData.get("endDate"),
+    offerDate: formData.get("offerDate") ?? "",
+    startDate: formData.get("startDate") ?? "",
+    endDate: formData.get("endDate") ?? "",
+    cancellationDate: formData.get("cancellationDate") ?? "",
     notes: formData.get("notes"),
   });
 
@@ -83,6 +93,18 @@ export async function updateProject(
   }
 
   const input = validation.data;
+
+  if (!isAllowedProjectStatusTransition(existingProject.status, input.status)) {
+    return {
+      ok: false,
+      message: "Η συγκεκριμένη αλλαγή κατάστασης έργου δεν επιτρέπεται.",
+      fieldErrors: {
+        status: "Επιλέξτε την επόμενη επιτρεπτή κατάσταση του έργου.",
+      },
+    };
+  }
+
+  const dates = normalizeProjectDates(input);
   const supabase = await createClient();
   const { error } = await supabase
     .from("projects")
@@ -91,10 +113,12 @@ export async function updateProject(
       name: input.name,
       client_name: input.clientName,
       location: input.location,
-      status: input.status,
+      status: toStoredProjectStatus(input.status),
       budget_amount: input.budgetAmount,
-      start_date: input.startDate,
-      end_date: input.endDate,
+      offer_date: dates.offerDate,
+      start_date: dates.startDate,
+      end_date: dates.endDate,
+      cancellation_date: dates.cancellationDate,
       notes: input.notes,
     })
     .eq("company_id", companyId)
