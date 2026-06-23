@@ -52,9 +52,46 @@ export const projectInputSchema = z
       message: "Η κατάσταση έργου δεν είναι έγκυρη.",
     }),
     budgetAmount: optionalBudget,
+    offerDate: optionalDate,
     startDate: optionalDate,
     endDate: optionalDate,
+    cancellationDate: optionalDate,
     notes: optionalText,
+  })
+  .superRefine((input, context) => {
+    if (input.status === "in_progress" && !input.startDate) {
+      context.addIssue({
+        code: "custom",
+        message: "Η ημερομηνία έναρξης είναι υποχρεωτική.",
+        path: ["startDate"],
+      });
+    }
+
+    if (input.status === "completed") {
+      if (!input.startDate) {
+        context.addIssue({
+          code: "custom",
+          message: "Η ημερομηνία έναρξης είναι υποχρεωτική.",
+          path: ["startDate"],
+        });
+      }
+
+      if (!input.endDate) {
+        context.addIssue({
+          code: "custom",
+          message: "Η ημερομηνία λήξης είναι υποχρεωτική.",
+          path: ["endDate"],
+        });
+      }
+    }
+
+    if (input.status === "cancelled" && !input.cancellationDate) {
+      context.addIssue({
+        code: "custom",
+        message: "Η ημερομηνία ακύρωσης είναι υποχρεωτική.",
+        path: ["cancellationDate"],
+      });
+    }
   })
   .refine(
     (input) =>
@@ -70,3 +107,39 @@ export const projectInputSchema = z
 export const projectIdSchema = z.string().uuid("Το έργο δεν είναι έγκυρο.");
 
 export type ProjectInput = z.infer<typeof projectInputSchema>;
+
+export function normalizeProjectDates(input: ProjectInput) {
+  if (input.status === "offer") {
+    return {
+      offerDate: input.offerDate,
+      startDate: null,
+      endDate: null,
+      cancellationDate: null,
+    };
+  }
+
+  if (input.status === "in_progress") {
+    return {
+      offerDate: null,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      cancellationDate: null,
+    };
+  }
+
+  if (input.status === "completed") {
+    return {
+      offerDate: null,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      cancellationDate: null,
+    };
+  }
+
+  return {
+    offerDate: null,
+    startDate: null,
+    endDate: null,
+    cancellationDate: input.cancellationDate,
+  };
+}

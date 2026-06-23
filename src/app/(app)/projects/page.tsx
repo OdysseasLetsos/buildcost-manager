@@ -3,7 +3,8 @@ import { canUseFeature } from "@/src/core/entitlements";
 import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany } from "@/src/core/tenants";
 import { ProjectsPageClient } from "@/src/features/projects/components/ProjectsPageClient";
-import { getProjects } from "@/src/features/projects/services/get-projects";
+import { getProjectQuotes } from "@/src/features/projects/services/get-project-quotes";
+import { getManagedProjects } from "@/src/features/projects/services/get-projects";
 
 export default async function ProjectsPage() {
   const currentCompany = await getCurrentCompany();
@@ -13,8 +14,9 @@ export default async function ProjectsPage() {
   }
 
   const companyId = currentCompany.company.id;
-  const [projects, featureAvailable] = await Promise.all([
-    getProjects(companyId),
+  const [projects, quotes, featureAvailable] = await Promise.all([
+    getManagedProjects(companyId),
+    getProjectQuotes(companyId),
     canUseFeature(companyId, "projects"),
   ]);
 
@@ -30,6 +32,7 @@ export default async function ProjectsPage() {
   return (
     <ProjectsPageClient
       projects={projects}
+      quotes={quotes}
       canManage={canManage}
       featureAvailable={featureAvailable}
     />

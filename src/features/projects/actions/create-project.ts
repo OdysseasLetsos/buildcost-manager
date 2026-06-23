@@ -10,8 +10,14 @@ import {
   requireCompanyMember,
 } from "@/src/core/tenants";
 import { createClient } from "@/src/integrations/supabase/server";
-import type { ProjectActionState } from "../types";
-import { projectInputSchema } from "../validators";
+import {
+  toStoredProjectStatus,
+  type ProjectActionState,
+} from "../types";
+import {
+  normalizeProjectDates,
+  projectInputSchema,
+} from "../validators";
 
 function mapValidationErrors(
   error: ReturnType<typeof projectInputSchema.safeParse>,
@@ -57,8 +63,10 @@ export async function createProject(
     location: formData.get("location"),
     status: formData.get("status"),
     budgetAmount: formData.get("budgetAmount"),
-    startDate: formData.get("startDate"),
-    endDate: formData.get("endDate"),
+    offerDate: formData.get("offerDate") ?? "",
+    startDate: formData.get("startDate") ?? "",
+    endDate: formData.get("endDate") ?? "",
+    cancellationDate: formData.get("cancellationDate") ?? "",
     notes: formData.get("notes"),
   });
 
@@ -71,6 +79,7 @@ export async function createProject(
   }
 
   const input = validation.data;
+  const dates = normalizeProjectDates(input);
   const supabase = await createClient();
   const { data: project, error } = await supabase
     .from("projects")
@@ -80,10 +89,12 @@ export async function createProject(
       name: input.name,
       client_name: input.clientName,
       location: input.location,
-      status: input.status,
+      status: toStoredProjectStatus(input.status),
       budget_amount: input.budgetAmount,
-      start_date: input.startDate,
-      end_date: input.endDate,
+      offer_date: dates.offerDate,
+      start_date: dates.startDate,
+      end_date: dates.endDate,
+      cancellation_date: dates.cancellationDate,
       notes: input.notes,
       created_by: user.id,
     })
