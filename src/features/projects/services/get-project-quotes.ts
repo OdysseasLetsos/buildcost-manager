@@ -1,5 +1,9 @@
 import { createClient } from "@/src/integrations/supabase/server";
-import type { ProjectQuote } from "../types";
+import type { ProjectQuote, ProjectQuoteType } from "../types";
+
+function normalizeQuoteType(value: unknown): ProjectQuoteType {
+  return value === "initial" ? "initial" : "supplemental";
+}
 
 export async function getProjectQuotes(
   companyId: string,
@@ -30,5 +34,8 @@ export async function getProjectQuotes(
     throw new Error("Unable to load project quotes.");
   }
 
-  return (data ?? []) as ProjectQuote[];
+  return (data ?? []).map((quote) => ({
+    ...quote,
+    quote_type: normalizeQuoteType(quote.quote_type),
+  })) as ProjectQuote[];
 }

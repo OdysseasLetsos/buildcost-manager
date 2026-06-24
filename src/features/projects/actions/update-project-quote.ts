@@ -91,6 +91,25 @@ export async function updateProjectQuote(
     return { ok: false, message: "Η προσφορά δεν βρέθηκε." };
   }
 
+  const approvedAmountsChanged =
+    existingQuote.status === "approved" &&
+    (existingQuote.amount !== input.amount ||
+      existingQuote.vat_amount !== input.vatAmount ||
+      existingQuote.total_amount !== input.totalAmount);
+
+  if (approvedAmountsChanged) {
+    return {
+      ok: false,
+      message:
+        "Τα ποσά εγκεκριμένης προσφοράς δεν μπορούν να αλλάξουν. Δημιουργήστε νέα έκδοση ή αναθεώρηση.",
+      fieldErrors: {
+        amount: "Το ποσό εγκεκριμένης προσφοράς είναι κλειδωμένο.",
+        vatAmount: "Ο ΦΠΑ εγκεκριμένης προσφοράς είναι κλειδωμένος.",
+        totalAmount: "Το συνολικό ποσό εγκεκριμένης προσφοράς είναι κλειδωμένο.",
+      },
+    };
+  }
+
   const { data, error } = await supabase
     .from("project_quotes")
     .update({
@@ -139,14 +158,20 @@ export async function updateProjectQuote(
   });
 
   if (existingQuote.status !== quote.status) {
+    const statusAction =
+      quote.status === "approved"
+        ? "project_quote.approved"
+        : quote.status === "rejected"
+          ? "project_quote.rejected"
+          : quote.status === "revised"
+            ? "project_quote.revised"
+            : quote.status === "cancelled"
+              ? "project_quote.cancelled"
+              : "project_quote.status_changed";
+
     await writeAuditLog({
       companyId,
-      action:
-        quote.status === "approved"
-          ? "project_quote.approved"
-          : quote.status === "rejected"
-            ? "project_quote.rejected"
-            : "project_quote.status_changed",
+      action: statusAction,
       entityType: "project_quote",
       entityId: quote.id,
       metadata: {
@@ -156,6 +181,30 @@ export async function updateProjectQuote(
         nextStatus: quote.status,
       },
     });
+
+    if (
+      existingQuote.status === "approved" ||
+      quote.status === "approved"
+    ) {
+      await writeAuditLog({
+        companyId,
+        action: "project_quote.approved_total_changed",
+        entityType: "project_quote",
+        entityId: quote.id,
+        metadata: {
+          projectId: quote.project_id,
+          quoteNumber: quote.quote_number,
+          previousStatus: existingQuote.status,
+          nextStatus: quote.status,
+          previousApprovedAmount:
+            existingQuote.status === "approved"
+              ? existingQuote.total_amount
+              : 0,
+          nextApprovedAmount:
+            quote.status === "approved" ? quote.total_amount : 0,
+        },
+      });
+    }
   }
 
   revalidatePath("/projects");
