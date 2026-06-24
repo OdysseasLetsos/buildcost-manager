@@ -90,6 +90,7 @@ export function ProjectQuoteDraftCard({
     quote?.rejection_reason ?? "",
   );
   const isEditing = Boolean(quote);
+  const approvedAmountsLocked = quote?.status === "approved";
 
   function updateCalculatedTotal(nextAmount: string, nextVat: string) {
     const net = Number(nextAmount);
@@ -265,6 +266,7 @@ export function ProjectQuoteDraftCard({
                 min="0"
                 step="0.01"
                 value={amount}
+                disabled={approvedAmountsLocked}
                 onChange={(event) => {
                   const nextAmount = event.target.value;
                   setAmount(nextAmount);
@@ -287,6 +289,7 @@ export function ProjectQuoteDraftCard({
                 min="0"
                 step="0.01"
                 value={vatAmount}
+                disabled={approvedAmountsLocked}
                 onChange={(event) => {
                   const nextVat = event.target.value;
                   setVatAmount(nextVat);
@@ -308,6 +311,7 @@ export function ProjectQuoteDraftCard({
                 min="0"
                 step="0.01"
                 value={totalAmount}
+                disabled={approvedAmountsLocked}
                 onChange={(event) => setTotalAmount(event.target.value)}
                 className={quoteInputClassName}
               />
@@ -317,6 +321,13 @@ export function ProjectQuoteDraftCard({
                 </span>
               ) : null}
             </label>
+
+            {approvedAmountsLocked ? (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 md:col-span-2">
+                Τα ποσά της εγκεκριμένης προσφοράς είναι κλειδωμένα. Για αλλαγή
+                ποσού δημιουργήστε νέα έκδοση ή αναθεώρηση.
+              </p>
+            ) : null}
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 md:col-span-2">
               Περιγραφή Εργασιών *

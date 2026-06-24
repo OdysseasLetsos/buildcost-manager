@@ -54,6 +54,14 @@ export const initialProjectQuoteActionState: ProjectQuoteActionState = {
   ok: false,
 };
 
+export type ProjectQuoteTotals = {
+  initialBudget: number;
+  approvedQuotesTotal: number;
+  pendingQuotesTotal: number;
+  draftQuotesTotal: number;
+  rejectedQuotesTotal: number;
+};
+
 export type ProjectFilters = {
   search?: string;
   status?: ProjectStatus | "all";

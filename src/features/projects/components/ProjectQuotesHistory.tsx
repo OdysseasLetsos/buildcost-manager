@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteProjectQuote } from "../actions/delete-project-quote";
+import { calculateProjectQuoteTotals } from "../services/calculate-project-quote-totals";
 import type {
   ProjectStatus,
   ProjectQuote,
@@ -39,17 +40,23 @@ const typeLabels: Record<ProjectQuoteType, string> = {
   supplemental: "Νέα προσφορά",
 };
 
+function getQuoteTypeLabel(value: ProjectQuote["quote_type"]): string {
+  return value === "initial" ? typeLabels.initial : typeLabels.supplemental;
+}
+
 function formatDate(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString("el-GR");
 }
 
 export function ProjectQuotesHistory({
   quotes,
+  initialBudget,
   projectStatus,
   onEdit,
   onDeleted,
 }: Readonly<{
   quotes: ProjectQuote[];
+  initialBudget: number | null;
   projectStatus: ProjectStatus;
   onEdit: (quote: ProjectQuote) => void;
   onDeleted: (quoteId: string, message: string) => void;
@@ -62,9 +69,34 @@ export function ProjectQuotesHistory({
   } | null>(null);
   const mutationsLocked =
     projectStatus === "completed" || projectStatus === "cancelled";
-  const approvedTotal = quotes
-    .filter((quote) => quote.status === "approved")
-    .reduce((sum, quote) => sum + quote.total_amount, 0);
+  const totals = calculateProjectQuoteTotals(initialBudget, quotes);
+  const financialItems = [
+    {
+      label: "Αρχικός προϋπολογισμός",
+      value: totals.initialBudget,
+      className: "border-slate-200 bg-slate-50 text-slate-900",
+    },
+    {
+      label: "Σύνολο εγκεκριμένων προσφορών",
+      value: totals.approvedQuotesTotal,
+      className: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    },
+    {
+      label: "Σε αναμονή",
+      value: totals.pendingQuotesTotal,
+      className: "border-amber-200 bg-amber-50 text-amber-900",
+    },
+    {
+      label: "Πρόχειρες προσφορές",
+      value: totals.draftQuotesTotal,
+      className: "border-blue-200 bg-blue-50 text-blue-900",
+    },
+    {
+      label: "Απορριφθείσες προσφορές",
+      value: totals.rejectedQuotesTotal,
+      className: "border-red-200 bg-red-50 text-red-900",
+    },
+  ];
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -77,14 +109,20 @@ export function ProjectQuotesHistory({
             Ιστορικό αρχικών και συμπληρωματικών προσφορών.
           </p>
         </div>
-        <div className="rounded-lg bg-emerald-50 px-3 py-2 text-right">
-          <p className="text-[11px] font-medium text-emerald-700">
-            Σύνολο εγκεκριμένων προσφορών
-          </p>
-          <p className="mt-0.5 text-sm font-bold text-emerald-900">
-            {currencyFormatter.format(approvedTotal)}
-          </p>
-        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {financialItems.map((item) => (
+          <div
+            key={item.label}
+            className={`rounded-lg border p-3 ${item.className}`}
+          >
+            <p className="text-xs font-medium opacity-75">{item.label}</p>
+            <p className="mt-2 text-base font-bold">
+              {currencyFormatter.format(item.value)}
+            </p>
+          </div>
+        ))}
       </div>
 
       {mutationsLocked ? (
@@ -136,7 +174,7 @@ export function ProjectQuotesHistory({
                     {quote.version}
                   </td>
                   <td className="px-3 py-3 text-slate-700">
-                    {typeLabels[quote.quote_type]}
+                    {getQuoteTypeLabel(quote.quote_type)}
                   </td>
                   <td className="max-w-64 px-3 py-3 text-slate-900">
                     <p className="font-medium">{quote.title}</p>

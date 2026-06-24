@@ -130,14 +130,20 @@ export async function createProjectQuote(
   });
 
   if (quote.status !== "draft") {
+    const statusAction =
+      quote.status === "approved"
+        ? "project_quote.approved"
+        : quote.status === "rejected"
+          ? "project_quote.rejected"
+          : quote.status === "revised"
+            ? "project_quote.revised"
+            : quote.status === "cancelled"
+              ? "project_quote.cancelled"
+              : "project_quote.status_changed";
+
     await writeAuditLog({
       companyId,
-      action:
-        quote.status === "approved"
-          ? "project_quote.approved"
-          : quote.status === "rejected"
-            ? "project_quote.rejected"
-            : "project_quote.status_changed",
+      action: statusAction,
       entityType: "project_quote",
       entityId: quote.id,
       metadata: {
@@ -145,6 +151,21 @@ export async function createProjectQuote(
         quoteNumber: quote.quote_number,
         previousStatus: "draft",
         nextStatus: quote.status,
+      },
+    });
+  }
+
+  if (quote.status === "approved") {
+    await writeAuditLog({
+      companyId,
+      action: "project_quote.approved_total_changed",
+      entityType: "project_quote",
+      entityId: quote.id,
+      metadata: {
+        projectId: quote.project_id,
+        quoteNumber: quote.quote_number,
+        previousApprovedAmount: 0,
+        nextApprovedAmount: quote.total_amount,
       },
     });
   }

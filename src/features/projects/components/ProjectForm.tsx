@@ -337,6 +337,7 @@ export function ProjectForm({
       {project ? (
         <ProjectQuotesHistory
           quotes={projectQuotes}
+          initialBudget={project.budget_amount}
           projectStatus={project.status}
           onEdit={(quote) => {
             setQuoteFeedback(null);
