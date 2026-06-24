@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProject } from "../actions/create-project";
 import { updateProject } from "../actions/update-project";
+import { calculateProjectQuoteTotals } from "../services/calculate-project-quote-totals";
 import type {
   ManagedProject,
   ProjectQuote,
+  ProjectQuoteTotals,
   ProjectStatus,
 } from "../types";
 import { ProjectFilters } from "./ProjectFilters";
@@ -54,6 +56,17 @@ export function ProjectsPageClient({
           (status === "all" || project.status === status),
       ),
     [projects, search, status],
+  );
+  const quoteTotalsByProject = useMemo(
+    () =>
+      projects.reduce<Record<string, ProjectQuoteTotals>>((totals, project) => {
+        totals[project.id] = calculateProjectQuoteTotals(
+          project.budget_amount,
+          quotes.filter((quote) => quote.project_id === project.id),
+        );
+        return totals;
+      }, {}),
+    [projects, quotes],
   );
 
   function handleMutationSuccess() {
@@ -154,6 +167,7 @@ export function ProjectsPageClient({
 
       <ProjectsTable
         projects={filteredProjects}
+        quoteTotalsByProject={quoteTotalsByProject}
         canManage={canMutateProjects}
         onEditProject={(project) => {
           setShowCreateForm(false);

@@ -1,8 +1,24 @@
-import type { ProjectQuote, ProjectQuoteTotals } from "../types";
+import type { ProjectQuoteStatus, ProjectQuoteTotals } from "../types";
+
+type ProjectQuoteTotalSource = {
+  status: ProjectQuoteStatus | string;
+  amount?: number | null;
+  vat_amount?: number | null;
+  total_amount?: number | null;
+};
+
+function quoteAmount(quote: ProjectQuoteTotalSource): number {
+  if (typeof quote.total_amount === "number") return quote.total_amount;
+  if (typeof quote.amount === "number") {
+    return quote.amount + (quote.vat_amount ?? 0);
+  }
+
+  return 0;
+}
 
 export function calculateProjectQuoteTotals(
   initialBudget: number | null,
-  quotes: readonly ProjectQuote[],
+  quotes: readonly ProjectQuoteTotalSource[],
 ): ProjectQuoteTotals {
   const totals: ProjectQuoteTotals = {
     initialBudget: initialBudget ?? 0,
@@ -13,7 +29,7 @@ export function calculateProjectQuoteTotals(
   };
 
   for (const quote of quotes) {
-    const amount = quote.total_amount;
+    const amount = quoteAmount(quote);
 
     if (quote.status === "approved") {
       totals.approvedQuotesTotal += amount;

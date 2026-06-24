@@ -14,6 +14,7 @@ import { LowMarginAlerts } from "./LowMarginAlerts";
 import { ProjectComparisonTable } from "./ProjectComparisonTable";
 import { ProjectCostBreakdown } from "./ProjectCostBreakdown";
 import { ProjectCostChart } from "./ProjectCostChart";
+import { ProjectQuoteFinancialOverview } from "./ProjectQuoteFinancialOverview";
 import { ProjectSummaryFilters } from "./ProjectSummaryFilters";
 import { ProjectSummaryKpiCards } from "./ProjectSummaryKpiCards";
 
@@ -142,6 +143,7 @@ export function ProjectSummaryPageClient({
 
       <ProjectSummaryKpiCards totals={totals} />
       <LowMarginAlerts projects={visibleProjects} warnings={report.warnings} />
+      <ProjectQuoteFinancialOverview projects={visibleProjects} />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <ProjectCostBreakdown costs={breakdownCosts} />

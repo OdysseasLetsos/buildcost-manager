@@ -54,6 +54,14 @@ export type ProjectSummaryCostBreakdown = {
   allocatedExpenses: number;
 };
 
+export type ProjectSummaryQuoteTotals = {
+  initialBudget: number;
+  approvedQuotesTotal: number;
+  pendingQuotesTotal: number;
+  draftQuotesTotal: number;
+  rejectedQuotesTotal: number;
+};
+
 export type ProjectSummaryRow = {
   projectId: string;
   projectCode: string;
@@ -69,6 +77,7 @@ export type ProjectSummaryRow = {
   profit: number;
   margin: number | null;
   costs: ProjectSummaryCostBreakdown;
+  quoteTotals: ProjectSummaryQuoteTotals;
 };
 
 export type ProjectSummaryTotals = {
