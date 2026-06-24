@@ -57,6 +57,7 @@ function finalizeProject(project: ProjectSummaryRow): ProjectSummaryRow {
       totalCost,
       margin,
     }),
+    quoteTotals: { ...project.quoteTotals },
   };
 }
 
@@ -82,6 +83,7 @@ function addProjectRow(
     totalCost: existingProject.totalCost + nextProject.totalCost,
     profit: existingProject.profit + nextProject.profit,
     costs: addCostBreakdown(existingProject.costs, nextProject.costs),
+    quoteTotals: { ...existingProject.quoteTotals },
   };
 }
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/src/integrations/supabase/server";
+import { calculateProjectQuoteTotals } from "@/src/features/projects/services/calculate-project-quote-totals";
 import type {
   EmployeeAmountRow,
   ExpenseAllocationRow,
@@ -25,11 +26,20 @@ type ProjectRow = {
   code: string;
   name: string;
   status: string;
+  budget_amount: number | null;
 };
 
 type EmployeeRow = {
   id: string;
   full_name: string;
+};
+
+type ProjectQuoteRow = {
+  project_id: string;
+  status: string;
+  amount: number | null;
+  vat_amount: number | null;
+  total_amount: number | null;
 };
 
 function projectStatus({
@@ -80,10 +90,11 @@ export async function getProjectSummary(
     materialsResult,
     expensesResult,
     revenuesResult,
+    quotesResult,
   ] = await Promise.all([
     supabase
       .from("projects")
-      .select("id, code, name, status")
+      .select("id, code, name, status, budget_amount")
       .eq("company_id", companyId),
     supabase.from("employees").select("id, full_name").eq("company_id", companyId),
     supabase
@@ -116,6 +127,10 @@ export async function getProjectSummary(
       .select("project_id, revenue_type, invoiced_amount, received_amount, remaining_amount, status")
       .eq("company_id", companyId)
       .eq("month_id", monthId),
+    supabase
+      .from("project_quotes")
+      .select("project_id, status, amount, vat_amount, total_amount")
+      .eq("company_id", companyId),
   ]);
 
   const firstError =
@@ -126,7 +141,8 @@ export async function getProjectSummary(
     ikaResult.error ??
     materialsResult.error ??
     expensesResult.error ??
-    revenuesResult.error;
+    revenuesResult.error ??
+    quotesResult.error;
 
   if (firstError) {
     console.error("[project-summary:getProjectSummary] Supabase error", {
@@ -146,6 +162,7 @@ export async function getProjectSummary(
   const materials = (materialsResult.data ?? []) as MaterialCostRow[];
   const expenses = (expensesResult.data ?? []) as ExpenseAllocationRow[];
   const revenues = (revenuesResult.data ?? []) as RevenueSummaryRow[];
+  const quotes = (quotesResult.data ?? []) as ProjectQuoteRow[];
   const employeeNames = new Map(employees.map((employee) => [employee.id, employee.full_name]));
   // Stored "active" projects represent the offer stage in the Projects UI.
   // Only in-progress projects participate in active-project allocations.
@@ -193,6 +210,14 @@ export async function getProjectSummary(
     );
   }
 
+  const quotesByProject = new Map<string, ProjectQuoteRow[]>();
+  for (const quote of quotes) {
+    quotesByProject.set(quote.project_id, [
+      ...(quotesByProject.get(quote.project_id) ?? []),
+      quote,
+    ]);
+  }
+
   const relevantProjectIds = new Set([
     ...projects.map((project) => project.id),
     ...workByProject.keys(),
@@ -201,6 +226,7 @@ export async function getProjectSummary(
     ...materialsByProject.keys(),
     ...expenseResult.allocations.keys(),
     ...revenuesByProject.keys(),
+    ...quotesByProject.keys(),
   ]);
   const projectMap = new Map(projects.map((project) => [project.id, project]));
 
@@ -227,6 +253,10 @@ export async function getProjectSummary(
     const totalCost = calculateTotalCost(costs);
     const profit = revenue.invoicedRevenue - totalCost;
     const margin = revenue.invoicedRevenue > 0 ? profit / revenue.invoicedRevenue : null;
+    const quoteTotals = calculateProjectQuoteTotals(
+      project?.budget_amount ?? null,
+      quotesByProject.get(projectId) ?? [],
+    );
 
     return {
       projectId,
@@ -242,6 +272,7 @@ export async function getProjectSummary(
       profit,
       margin,
       costs,
+      quoteTotals,
       status: projectStatus({
         profit,
         invoicedRevenue: revenue.invoicedRevenue,
