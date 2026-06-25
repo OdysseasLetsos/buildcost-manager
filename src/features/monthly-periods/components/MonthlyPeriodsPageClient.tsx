@@ -9,11 +9,13 @@ import { MonthlyPeriodsTable } from "./MonthlyPeriodsTable";
 
 export function MonthlyPeriodsPageClient({
   monthlyPeriods,
+  currentMonthKey,
   canCreate,
   canManageLocks,
   featureAvailable,
 }: Readonly<{
   monthlyPeriods: MonthlyPeriod[];
+  currentMonthKey: string;
   canCreate: boolean;
   canManageLocks: boolean;
   featureAvailable: boolean;
@@ -34,7 +36,11 @@ export function MonthlyPeriodsPageClient({
           <p className="text-sm font-medium text-blue-700">BuildCost Manager</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">Μήνες</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Διαχείριση λογιστικών περιόδων και κλειδώματος μηνών.
+            Διαχείριση λογιστικών περιόδων, κλειδώματος και διορθώσεων
+            παλαιότερων μηνών.
+          </p>
+          <p className="mt-3 inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
+            Τρέχων μήνας: {currentMonthKey}
           </p>
         </div>
 
@@ -64,10 +70,17 @@ export function MonthlyPeriodsPageClient({
 
       {featureAvailable && canCreate && !canManageLocks ? (
         <section className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
-          Μπορείτε να δημιουργείτε μήνες. Το κλείδωμα και το άνοιγμα επιτρέπεται
-          μόνο σε ιδιοκτήτες και διαχειριστές.
+          Μπορείτε να δημιουργείτε μήνες. Το κλείδωμα και το ξεκλείδωμα
+          επιτρέπεται μόνο σε ιδιοκτήτες και διαχειριστές.
         </section>
       ) : null}
+
+      <section className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+        Ο τρέχων μήνας είναι ο κύριος ενεργός μήνας. Οι προηγούμενοι μήνες
+        δημιουργούνται κλειδωμένοι και μπορούν να ξεκλειδωθούν προσωρινά για
+        διορθώσεις. Μελλοντικοί μήνες δεν μπορούν να δημιουργηθούν ή να
+        ανοίξουν πριν ξεκινήσουν ημερολογιακά.
+      </section>
 
       <MonthlyPeriodWorkflow />
 
@@ -75,13 +88,17 @@ export function MonthlyPeriodsPageClient({
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-slate-950">Νέος Μήνας</h3>
           <div className="mt-5">
-            <MonthlyPeriodForm onSuccess={handleCreateSuccess} />
+            <MonthlyPeriodForm
+              currentMonthKey={currentMonthKey}
+              onSuccess={handleCreateSuccess}
+            />
           </div>
         </section>
       ) : null}
 
       <MonthlyPeriodsTable
         monthlyPeriods={monthlyPeriods}
+        currentMonthKey={currentMonthKey}
         canManageLocks={canManageLocks && featureAvailable}
       />
     </div>
