@@ -5,8 +5,10 @@ import { createMonthlyPeriod } from "../actions/create-monthly-period";
 import { initialMonthlyPeriodActionState } from "../types";
 
 export function MonthlyPeriodForm({
+  currentMonthKey,
   onSuccess,
 }: Readonly<{
+  currentMonthKey: string;
   onSuccess?: () => void;
 }>) {
   const [state, formAction, isPending] = useActionState(
@@ -28,8 +30,15 @@ export function MonthlyPeriodForm({
           name="monthKey"
           type="month"
           required
+          defaultValue={currentMonthKey}
+          max={currentMonthKey}
           className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
         />
+        <span className="text-xs font-normal text-slate-500">
+          Οι προηγούμενοι μήνες δημιουργούνται κλειδωμένοι και μπορούν να
+          ξεκλειδωθούν για διορθώσεις. Μελλοντικοί μήνες δεν μπορούν να
+          δημιουργηθούν πριν ξεκινήσουν ημερολογιακά.
+        </span>
         {state.fieldErrors?.monthKey ? (
           <span className="text-xs text-red-700">{state.fieldErrors.monthKey}</span>
         ) : null}
@@ -45,7 +54,7 @@ export function MonthlyPeriodForm({
 
       {state.message ? (
         <p
-          className={`md:col-span-2 rounded-lg border px-4 py-3 text-sm ${
+          className={`rounded-lg border px-4 py-3 text-sm md:col-span-2 ${
             state.ok
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-red-200 bg-red-50 text-red-800"

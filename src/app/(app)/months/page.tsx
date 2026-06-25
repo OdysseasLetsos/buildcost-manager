@@ -4,6 +4,7 @@ import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany } from "@/src/core/tenants";
 import { MonthlyPeriodsPageClient } from "@/src/features/monthly-periods/components/MonthlyPeriodsPageClient";
 import { getMonthlyPeriods } from "@/src/features/monthly-periods/services/get-monthly-periods";
+import { getCurrentMonthKey } from "@/src/features/monthly-periods/services/month-rules";
 
 export default async function MonthsPage() {
   const currentCompany = await getCurrentCompany();
@@ -38,6 +39,7 @@ export default async function MonthsPage() {
   return (
     <MonthlyPeriodsPageClient
       monthlyPeriods={monthlyPeriods}
+      currentMonthKey={getCurrentMonthKey()}
       canCreate={canCreate}
       canManageLocks={canManageLocks}
       featureAvailable={featureAvailable}

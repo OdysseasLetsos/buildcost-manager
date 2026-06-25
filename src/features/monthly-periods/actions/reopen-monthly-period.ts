@@ -12,6 +12,12 @@ import {
 import { createClient } from "@/src/integrations/supabase/server";
 import type { MonthlyPeriodActionState } from "../types";
 import { getMonthlyPeriodById } from "../services/get-monthly-period-by-id";
+import {
+  FUTURE_MONTH_ERROR,
+  getCurrentMonthKey,
+  isFutureMonth,
+  isPastMonth,
+} from "../services/month-rules";
 import { monthlyPeriodIdSchema } from "../validators";
 
 export async function reopenMonthlyPeriod(
@@ -27,7 +33,7 @@ export async function reopenMonthlyPeriod(
 
   const companyId = currentCompany.company.id;
   await requireCompanyMember(companyId);
-  await requireRole(companyId, ["owner", "admin"]);
+  await requireRole(companyId, ["owner", "admin", "office"]);
   await requireFeature(companyId, "monthly_periods");
 
   const monthId = monthlyPeriodIdSchema.safeParse(formData.get("monthId"));
@@ -40,6 +46,20 @@ export async function reopenMonthlyPeriod(
 
   if (!monthlyPeriod) {
     return { ok: false, message: "Ο μήνας δεν βρέθηκε." };
+  }
+
+  const currentMonthKey = getCurrentMonthKey();
+
+  if (isFutureMonth(monthlyPeriod.month_key, currentMonthKey)) {
+    await writeAuditLog({
+      companyId,
+      action: "monthly_period.open_rejected",
+      entityType: "monthly_period",
+      entityId: monthId.data,
+      metadata: { monthKey: monthlyPeriod.month_key, reason: "future_month" },
+    });
+
+    return { ok: false, message: FUTURE_MONTH_ERROR };
   }
 
   const supabase = await createClient();
@@ -62,12 +82,14 @@ export async function reopenMonthlyPeriod(
       hint: error.hint,
     });
 
-    return { ok: false, message: "Δεν ήταν δυνατό το άνοιγμα του μήνα." };
+    return { ok: false, message: "Δεν ήταν δυνατό το ξεκλείδωμα του μήνα." };
   }
 
   await writeAuditLog({
     companyId,
-    action: "monthly_period.reopened",
+    action: isPastMonth(monthlyPeriod.month_key, currentMonthKey)
+      ? "monthly_period.unlocked_for_corrections"
+      : "monthly_period.reopened",
     entityType: "monthly_period",
     entityId: monthId.data,
     metadata: { monthKey: monthlyPeriod.month_key },
@@ -75,5 +97,10 @@ export async function reopenMonthlyPeriod(
 
   revalidatePath("/months");
 
-  return { ok: true, message: "Ο μήνας άνοιξε ξανά." };
+  return {
+    ok: true,
+    message: isPastMonth(monthlyPeriod.month_key, currentMonthKey)
+      ? "Ο μήνας ξεκλειδώθηκε για διορθώσεις."
+      : "Ο μήνας άνοιξε.",
+  };
 }

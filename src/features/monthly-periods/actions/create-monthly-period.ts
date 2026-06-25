@@ -11,6 +11,13 @@ import {
 } from "@/src/core/tenants";
 import { createClient } from "@/src/integrations/supabase/server";
 import type { MonthlyPeriodActionState } from "../types";
+import {
+  FUTURE_MONTH_ERROR,
+  getCurrentMonthKey,
+  isCurrentMonth,
+  isFutureMonth,
+  isPastMonth,
+} from "../services/month-rules";
 import { monthlyPeriodInputSchema } from "../validators";
 
 function getMonthDates(monthKey: string): { startsOn: string; endsOn: string } {
@@ -59,7 +66,26 @@ export async function createMonthlyPeriod(
   }
 
   const { monthKey } = validation.data;
+  const currentMonthKey = getCurrentMonthKey();
+
+  if (isFutureMonth(monthKey, currentMonthKey)) {
+    await writeAuditLog({
+      companyId,
+      action: "monthly_period.open_rejected",
+      entityType: "monthly_period",
+      entityId: null,
+      metadata: { monthKey, reason: "future_month" },
+    });
+
+    return {
+      ok: false,
+      message: FUTURE_MONTH_ERROR,
+      fieldErrors: { monthKey: FUTURE_MONTH_ERROR },
+    };
+  }
+
   const { startsOn, endsOn } = getMonthDates(monthKey);
+  const createLocked = isPastMonth(monthKey, currentMonthKey);
   const supabase = await createClient();
   const { data: monthlyPeriod, error } = await supabase
     .from("monthly_periods")
@@ -68,10 +94,10 @@ export async function createMonthlyPeriod(
       month_key: monthKey,
       starts_on: startsOn,
       ends_on: endsOn,
-      is_locked: false,
-      status: "open",
-      locked_at: null,
-      locked_by: null,
+      is_locked: createLocked,
+      status: createLocked ? "locked" : "open",
+      locked_at: createLocked ? new Date().toISOString() : null,
+      locked_by: createLocked ? user.id : null,
       created_by: user.id,
     })
     .select("id")
@@ -90,13 +116,24 @@ export async function createMonthlyPeriod(
 
   await writeAuditLog({
     companyId,
-    action: "monthly_period.created",
+    action: createLocked
+      ? "monthly_period.previous_created_locked"
+      : "monthly_period.created",
     entityType: "monthly_period",
     entityId: monthlyPeriod.id,
-    metadata: { monthKey },
+    metadata: {
+      monthKey,
+      currentMonth: isCurrentMonth(monthKey, currentMonthKey),
+      lockedByDefault: createLocked,
+    },
   });
 
   revalidatePath("/months");
 
-  return { ok: true, message: "Ο μήνας δημιουργήθηκε." };
+  return {
+    ok: true,
+    message: createLocked
+      ? "Ο προηγούμενος μήνας δημιουργήθηκε κλειδωμένος."
+      : "Ο μήνας δημιουργήθηκε.",
+  };
 }
