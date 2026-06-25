@@ -9,6 +9,7 @@ import type {
   ProjectSummaryRow,
   ProjectSummaryTotals,
   RevenueSummaryRow,
+  SubcontractorContractCostRow,
   WorkUnitRow,
 } from "../types";
 import { calculateExpenseAllocations } from "./calculate-expense-allocations";
@@ -88,6 +89,7 @@ export async function getProjectSummary(
     paymentsResult,
     ikaResult,
     materialsResult,
+    subcontractorContractsResult,
     expensesResult,
     revenuesResult,
     quotesResult,
@@ -118,6 +120,11 @@ export async function getProjectSummary(
       .eq("company_id", companyId)
       .eq("month_id", monthId),
     supabase
+      .from("employee_project_contracts")
+      .select("project_id, contract_amount")
+      .eq("company_id", companyId)
+      .in("status", ["active", "completed"]),
+    supabase
       .from("expenses")
       .select("id, amount, allocation_method, description")
       .eq("company_id", companyId)
@@ -140,6 +147,7 @@ export async function getProjectSummary(
     paymentsResult.error ??
     ikaResult.error ??
     materialsResult.error ??
+    subcontractorContractsResult.error ??
     expensesResult.error ??
     revenuesResult.error ??
     quotesResult.error;
@@ -160,6 +168,8 @@ export async function getProjectSummary(
   const payments = (paymentsResult.data ?? []) as EmployeeAmountRow[];
   const ikaRows = (ikaResult.data ?? []) as IkaAmountRow[];
   const materials = (materialsResult.data ?? []) as MaterialCostRow[];
+  const subcontractorContracts =
+    (subcontractorContractsResult.data ?? []) as SubcontractorContractCostRow[];
   const expenses = (expensesResult.data ?? []) as ExpenseAllocationRow[];
   const revenues = (revenuesResult.data ?? []) as RevenueSummaryRow[];
   const quotes = (quotesResult.data ?? []) as ProjectQuoteRow[];
@@ -210,6 +220,15 @@ export async function getProjectSummary(
     );
   }
 
+  const subcontractorContractsByProject = new Map<string, number>();
+  for (const row of subcontractorContracts) {
+    subcontractorContractsByProject.set(
+      row.project_id,
+      (subcontractorContractsByProject.get(row.project_id) ?? 0) +
+        Number(row.contract_amount),
+    );
+  }
+
   const quotesByProject = new Map<string, ProjectQuoteRow[]>();
   for (const quote of quotes) {
     quotesByProject.set(quote.project_id, [
@@ -224,6 +243,7 @@ export async function getProjectSummary(
     ...paymentResult.allocations.keys(),
     ...ikaAllocationResult.allocations.keys(),
     ...materialsByProject.keys(),
+    ...subcontractorContractsByProject.keys(),
     ...expenseResult.allocations.keys(),
     ...revenuesByProject.keys(),
     ...quotesByProject.keys(),
@@ -248,6 +268,7 @@ export async function getProjectSummary(
       allocatedPayments: paymentResult.allocations.get(projectId) ?? 0,
       allocatedIka: ikaAllocationResult.allocations.get(projectId) ?? 0,
       materialsCost: materialsByProject.get(projectId) ?? 0,
+      subcontractorContracts: subcontractorContractsByProject.get(projectId) ?? 0,
       allocatedExpenses: expenseResult.allocations.get(projectId) ?? 0,
     };
     const totalCost = calculateTotalCost(costs);

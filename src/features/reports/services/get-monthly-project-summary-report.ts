@@ -39,6 +39,7 @@ export async function getMonthlyProjectSummaryReport({
         totals.costs.allocatedPayments += project.costs.allocatedPayments;
         totals.costs.allocatedIka += project.costs.allocatedIka;
         totals.costs.materialsCost += project.costs.materialsCost;
+        totals.costs.subcontractorContracts += project.costs.subcontractorContracts;
         totals.costs.allocatedExpenses += project.costs.allocatedExpenses;
         return totals;
       },
@@ -54,6 +55,7 @@ export async function getMonthlyProjectSummaryReport({
           allocatedPayments: 0,
           allocatedIka: 0,
           materialsCost: 0,
+          subcontractorContracts: 0,
           allocatedExpenses: 0,
         },
       },

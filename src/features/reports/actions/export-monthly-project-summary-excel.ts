@@ -21,6 +21,7 @@ const columns = [
   { label: "Πληρωμές", value: (row: ProjectSummaryRow) => row.costs.allocatedPayments },
   { label: "ΙΚΑ", value: (row: ProjectSummaryRow) => row.costs.allocatedIka },
   { label: "Υλικά", value: (row: ProjectSummaryRow) => row.costs.materialsCost },
+  { label: "Συνεργάτες", value: (row: ProjectSummaryRow) => row.costs.subcontractorContracts },
   { label: "Έξοδα", value: (row: ProjectSummaryRow) => row.costs.allocatedExpenses },
   { label: "Συνολικό Κόστος", value: (row: ProjectSummaryRow) => row.totalCost },
   { label: "Έσοδα", value: (row: ProjectSummaryRow) => row.invoicedRevenue },

@@ -27,6 +27,7 @@ function Row({ row }: { row: ProjectSummaryRow }) {
       <td className="px-3 py-3 text-right">{formatCurrency(row.costs.allocatedPayments)}</td>
       <td className="px-3 py-3 text-right">{formatCurrency(row.costs.allocatedIka)}</td>
       <td className="px-3 py-3 text-right">{formatCurrency(row.costs.materialsCost)}</td>
+      <td className="px-3 py-3 text-right">{formatCurrency(row.costs.subcontractorContracts)}</td>
       <td className="px-3 py-3 text-right">{formatCurrency(row.costs.allocatedExpenses)}</td>
       <td className="px-3 py-3 text-right font-semibold">{formatCurrency(row.totalCost)}</td>
       <td className="px-3 py-3 text-right">{formatCurrency(row.invoicedRevenue)}</td>
@@ -50,7 +51,7 @@ export function MonthlyProjectSummaryReport({
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-[1180px] w-full text-left text-sm">
+      <table className="w-full min-w-[1260px] text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
           <tr>
             {[
@@ -60,6 +61,7 @@ export function MonthlyProjectSummaryReport({
               "Πληρωμές",
               "ΙΚΑ",
               "Υλικά",
+              "Συνεργάτες",
               "Έξοδα",
               "Συνολικό Κόστος",
               "Έσοδα",

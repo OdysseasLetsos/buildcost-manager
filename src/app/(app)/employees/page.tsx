@@ -3,6 +3,8 @@ import { canUseFeature } from "@/src/core/entitlements";
 import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany } from "@/src/core/tenants";
 import { EmployeesPageClient } from "@/src/features/employees/components/EmployeesPageClient";
+import { getEmployeeProjectContracts } from "@/src/features/employees/services/get-employee-project-contracts";
+import { getEmployeeProjectOptions } from "@/src/features/employees/services/get-employee-project-options";
 import { getEmployees } from "@/src/features/employees/services/get-employees";
 
 export default async function EmployeesPage() {
@@ -13,8 +15,10 @@ export default async function EmployeesPage() {
   }
 
   const companyId = currentCompany.company.id;
-  const [employees, featureAvailable] = await Promise.all([
+  const [employees, projectContracts, projectOptions, featureAvailable] = await Promise.all([
     getEmployees(companyId),
+    getEmployeeProjectContracts(companyId),
+    getEmployeeProjectOptions(companyId),
     canUseFeature(companyId, "employees"),
   ]);
 
@@ -30,6 +34,8 @@ export default async function EmployeesPage() {
   return (
     <EmployeesPageClient
       employees={employees}
+      projectContracts={projectContracts}
+      projectOptions={projectOptions}
       canManage={canManage}
       featureAvailable={featureAvailable}
     />

@@ -12,7 +12,16 @@ import {
 import { createClient } from "@/src/integrations/supabase/server";
 import type { EmployeeActionState } from "../types";
 import { getEmployeeById } from "../services/get-employee-by-id";
-import { employeeIdSchema, employeeInputSchema } from "../validators";
+import {
+  syncEmployeeProjectContracts,
+  validateContractProjects,
+} from "../services/sync-employee-project-contracts";
+import {
+  employeeIdSchema,
+  employeeInputSchema,
+  employeeProjectContractsInputSchema,
+  type EmployeeProjectContractInput,
+} from "../validators";
 
 function mapValidationErrors(
   validation: ReturnType<typeof employeeInputSchema.safeParse>,
@@ -28,11 +37,92 @@ function mapValidationErrors(
   );
 }
 
+function parseContractRows(formData: FormData): {
+  rawContracts: Array<{
+    id?: string;
+    projectId: FormDataEntryValue | null;
+    contractAmount: FormDataEntryValue | null;
+    notes: FormDataEntryValue | null;
+  }>;
+} {
+  const ids = formData.getAll("contractId");
+  const projectIds = formData.getAll("contractProjectId");
+  const amounts = formData.getAll("contractAmount");
+  const notes = formData.getAll("contractNotes");
+
+  return {
+    rawContracts: projectIds
+      .map((projectId, index) => ({
+        id: typeof ids[index] === "string" && ids[index] ? String(ids[index]) : undefined,
+        projectId,
+        contractAmount: amounts[index] ?? null,
+        notes: notes[index] ?? null,
+      }))
+      .filter(
+        (contract) =>
+          String(contract.projectId ?? "").trim() ||
+          String(contract.contractAmount ?? "").trim() ||
+          String(contract.notes ?? "").trim(),
+      ),
+  };
+}
+
+async function validateContracts(
+  companyId: string,
+  formData: FormData,
+): Promise<
+  | { ok: true; contracts: EmployeeProjectContractInput[] }
+  | { ok: false; state: EmployeeActionState }
+> {
+  const { rawContracts } = parseContractRows(formData);
+  const validation = employeeProjectContractsInputSchema.safeParse(rawContracts);
+
+  if (!validation.success) {
+    return {
+      ok: false,
+      state: {
+        ok: false,
+        message: "Ελέγξτε τις συμβάσεις έργων του συνεργάτη.",
+        fieldErrors: {
+          projectContracts:
+            validation.error.issues[0]?.message ??
+            "Οι συμβάσεις έργων δεν είναι έγκυρες.",
+        },
+      },
+    };
+  }
+
+  const projectIds = validation.data.map((contract) => contract.projectId);
+  const projectsAreValid = await validateContractProjects(companyId, projectIds);
+
+  if (!projectsAreValid) {
+    return {
+      ok: false,
+      state: {
+        ok: false,
+        message: "Επιλέξτε ενεργά έργα της τρέχουσας εταιρείας.",
+        fieldErrors: {
+          projectContracts: "Κάποιο έργο δεν είναι διαθέσιμο.",
+        },
+      },
+    };
+  }
+
+  return { ok: true, contracts: validation.data };
+}
+
+function rateChanged(
+  previous: number | null,
+  next: number | null,
+): boolean {
+  return Number(previous ?? 0) !== Number(next ?? 0);
+}
+
 export async function updateEmployee(
   _previousState: EmployeeActionState,
   formData: FormData,
 ): Promise<EmployeeActionState> {
-  await requireUser();
+  const user = await requireUser();
   const currentCompany = await getCurrentCompany();
 
   if (!currentCompany) {
@@ -75,15 +165,30 @@ export async function updateEmployee(
   }
 
   const input = validation.data;
+  const contractsResult =
+    input.employeeType === "subcontractor"
+      ? await validateContracts(companyId, formData)
+      : ({ ok: true, contracts: [] } satisfies {
+          ok: true;
+          contracts: EmployeeProjectContractInput[];
+        });
+
+  if (!contractsResult.ok) {
+    return contractsResult.state;
+  }
+
+  const dailyRate = input.employeeType === "subcontractor" ? null : input.dailyRate;
+  const hourlyRate = input.employeeType === "subcontractor" ? null : input.hourlyRate;
+  const overtimeRate = input.employeeType === "subcontractor" ? null : input.overtimeRate;
   const supabase = await createClient();
   const { error } = await supabase
     .from("employees")
     .update({
       full_name: input.fullName,
       employee_type: input.employeeType,
-      daily_rate: input.dailyRate,
-      hourly_rate: input.hourlyRate,
-      overtime_rate: input.overtimeRate,
+      daily_rate: dailyRate,
+      hourly_rate: hourlyRate,
+      overtime_rate: overtimeRate,
       active: input.active,
       status: input.active ? "active" : "inactive",
       notes: input.notes,
@@ -102,6 +207,21 @@ export async function updateEmployee(
     return { ok: false, message: "Δεν ήταν δυνατή η ενημέρωση εργαζομένου." };
   }
 
+  try {
+    await syncEmployeeProjectContracts({
+      companyId,
+      employeeId: employeeId.data,
+      createdBy: user.id,
+      contracts: contractsResult.contracts,
+    });
+  } catch (error) {
+    console.error("[employees:updateEmployee:contracts] Error", error);
+    return {
+      ok: false,
+      message: "Ο εργαζόμενος ενημερώθηκε, αλλά δεν αποθηκεύτηκαν οι συμβάσεις έργων.",
+    };
+  }
+
   await writeAuditLog({
     companyId,
     action: "employee.updated",
@@ -115,7 +235,29 @@ export async function updateEmployee(
     },
   });
 
+  if (
+    rateChanged(existingEmployee.daily_rate, dailyRate) ||
+    rateChanged(existingEmployee.hourly_rate, hourlyRate) ||
+    rateChanged(existingEmployee.overtime_rate, overtimeRate)
+  ) {
+    await writeAuditLog({
+      companyId,
+      action: "employee.rate_changed",
+      entityType: "employee",
+      entityId: employeeId.data,
+      metadata: {
+        previousDailyRate: existingEmployee.daily_rate,
+        nextDailyRate: dailyRate,
+        previousHourlyRate: existingEmployee.hourly_rate,
+        nextHourlyRate: hourlyRate,
+        previousOvertimeRate: existingEmployee.overtime_rate,
+        nextOvertimeRate: overtimeRate,
+      },
+    });
+  }
+
   revalidatePath("/employees");
+  revalidatePath("/project-summary");
 
   return { ok: true, message: "Ο εργαζόμενος ενημερώθηκε." };
 }

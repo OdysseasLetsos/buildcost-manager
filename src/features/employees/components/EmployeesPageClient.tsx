@@ -4,7 +4,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createEmployee } from "../actions/create-employee";
 import { updateEmployee } from "../actions/update-employee";
-import type { Employee, EmployeeType } from "../types";
+import type {
+  Employee,
+  EmployeeProjectContract,
+  EmployeeProjectOption,
+  EmployeeType,
+} from "../types";
 import { EmployeeFilters } from "./EmployeeFilters";
 import { EmployeeForm } from "./EmployeeForm";
 import { EmployeesTable } from "./EmployeesTable";
@@ -23,10 +28,14 @@ function employeeMatchesSearch(employee: Employee, search: string): boolean {
 
 export function EmployeesPageClient({
   employees,
+  projectContracts,
+  projectOptions,
   canManage,
   featureAvailable,
 }: Readonly<{
   employees: Employee[];
+  projectContracts: EmployeeProjectContract[];
+  projectOptions: EmployeeProjectOption[];
   canManage: boolean;
   featureAvailable: boolean;
 }>) {
@@ -36,6 +45,19 @@ export function EmployeesPageClient({
   const [status, setStatus] = useState<"active" | "inactive" | "all">("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  const contractsByEmployeeId = useMemo(() => {
+    const grouped = new Map<string, EmployeeProjectContract[]>();
+
+    for (const contract of projectContracts) {
+      grouped.set(contract.employee_id, [
+        ...(grouped.get(contract.employee_id) ?? []),
+        contract,
+      ]);
+    }
+
+    return grouped;
+  }, [projectContracts]);
 
   const filteredEmployees = useMemo(
     () =>
@@ -102,6 +124,7 @@ export function EmployeesPageClient({
           <div className="mt-5">
             <EmployeeForm
               action={createEmployee}
+              projectOptions={projectOptions}
               submitLabel="Δημιουργία Εργαζομένου"
               onSuccess={handleMutationSuccess}
             />
@@ -127,6 +150,8 @@ export function EmployeesPageClient({
             <EmployeeForm
               action={updateEmployee}
               employee={editingEmployee}
+              projectOptions={projectOptions}
+              projectContracts={contractsByEmployeeId.get(editingEmployee.id) ?? []}
               submitLabel="Αποθήκευση Αλλαγών"
               onSuccess={handleMutationSuccess}
             />
@@ -145,6 +170,7 @@ export function EmployeesPageClient({
 
       <EmployeesTable
         employees={filteredEmployees}
+        contractsByEmployeeId={contractsByEmployeeId}
         canManage={canMutateEmployees}
         onEditEmployee={setEditingEmployee}
       />

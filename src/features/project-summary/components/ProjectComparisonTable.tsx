@@ -36,7 +36,7 @@ export function ProjectComparisonTable({
   return (
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1480px] table-fixed text-left text-sm">
+        <table className="w-full min-w-[1580px] table-fixed text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-[0.08em] text-slate-500">
             <tr>
               <th className="w-52 px-3 py-3">Έργο</th>
@@ -45,6 +45,7 @@ export function ProjectComparisonTable({
               <th className="w-28 px-3 py-3 text-right">Πληρωμές</th>
               <th className="w-28 px-3 py-3 text-right">ΙΚΑ</th>
               <th className="w-28 px-3 py-3 text-right">Υλικά</th>
+              <th className="w-28 px-3 py-3 text-right">Συνεργάτες</th>
               <th className="w-28 px-3 py-3 text-right">Έξοδα</th>
               <th className="w-32 px-3 py-3 text-right">Συνολικό Κόστος</th>
               <th className="w-32 px-3 py-3 text-right">Έσοδα</th>
@@ -66,6 +67,7 @@ export function ProjectComparisonTable({
                 <td className="px-3 py-3 text-right">{currencyFormatter.format(project.costs.allocatedPayments)}</td>
                 <td className="px-3 py-3 text-right">{currencyFormatter.format(project.costs.allocatedIka)}</td>
                 <td className="px-3 py-3 text-right">{currencyFormatter.format(project.costs.materialsCost)}</td>
+                <td className="px-3 py-3 text-right">{currencyFormatter.format(project.costs.subcontractorContracts)}</td>
                 <td className="px-3 py-3 text-right">{currencyFormatter.format(project.costs.allocatedExpenses)}</td>
                 <td className="px-3 py-3 text-right font-semibold">{currencyFormatter.format(project.totalCost)}</td>
                 <td className="px-3 py-3 text-right">{currencyFormatter.format(project.invoicedRevenue)}</td>
@@ -84,7 +86,7 @@ export function ProjectComparisonTable({
             ))}
             {projects.length === 0 ? (
               <tr>
-                <td colSpan={14} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={15} className="px-4 py-8 text-center text-slate-500">
                   Δεν υπάρχουν δεδομένα σύνοψης για τον επιλεγμένο μήνα.
                 </td>
               </tr>
