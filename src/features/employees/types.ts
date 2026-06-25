@@ -15,6 +15,24 @@ export type Employee = Omit<
   employee_type: EmployeeType;
 };
 
+export type EmployeeProjectContractStatus = "active" | "completed" | "cancelled";
+
+export type EmployeeProjectContract = Omit<
+  Database["public"]["Tables"]["employee_project_contracts"]["Row"],
+  "status"
+> & {
+  status: EmployeeProjectContractStatus;
+  project?: {
+    code: string;
+    name: string;
+  } | null;
+};
+
+export type EmployeeProjectOption = Pick<
+  Database["public"]["Tables"]["projects"]["Row"],
+  "id" | "code" | "name"
+>;
+
 export type EmployeeFilters = {
   search?: string;
   employeeType?: EmployeeType | "all";

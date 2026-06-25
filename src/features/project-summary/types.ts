@@ -30,6 +30,11 @@ export type MaterialCostRow = {
   total_amount: number;
 };
 
+export type SubcontractorContractCostRow = {
+  project_id: string;
+  contract_amount: number;
+};
+
 export type ExpenseAllocationRow = {
   id: string;
   amount: number;
@@ -51,6 +56,7 @@ export type ProjectSummaryCostBreakdown = {
   allocatedPayments: number;
   allocatedIka: number;
   materialsCost: number;
+  subcontractorContracts: number;
   allocatedExpenses: number;
 };
 

@@ -14,6 +14,7 @@ export function ProjectCostChart({
     ["Πληρωμές", costs.allocatedPayments],
     ["ΙΚΑ", costs.allocatedIka],
     ["Υλικά", costs.materialsCost],
+    ["Κόστος συνεργατών", costs.subcontractorContracts],
     ["Έξοδα Εργαζομένων", costs.employeeExpenses],
     ["Γενικά / Έδρα Έξοδα", costs.allocatedExpenses],
   ];

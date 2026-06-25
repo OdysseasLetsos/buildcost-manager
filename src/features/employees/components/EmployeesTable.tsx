@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { deactivateEmployee } from "../actions/deactivate-employee";
 import { reactivateEmployee } from "../actions/reactivate-employee";
-import type { Employee } from "../types";
+import type { Employee, EmployeeProjectContract } from "../types";
 import { initialEmployeeActionState } from "../types";
 import { EmployeeStatusBadge } from "./EmployeeStatusBadge";
 import { EmployeeTypeBadge } from "./EmployeeTypeBadge";
@@ -15,6 +15,17 @@ const currencyFormatter = new Intl.NumberFormat("el-GR", {
 
 function formatRate(value: number | null): string {
   return value === null ? "-" : currencyFormatter.format(value);
+}
+
+function contractSummary(contracts: EmployeeProjectContract[]): string {
+  const activeContracts = contracts.filter((contract) => contract.status !== "cancelled");
+  const totalAmount = activeContracts.reduce(
+    (sum, contract) => sum + Number(contract.contract_amount),
+    0,
+  );
+  const projectsLabel = activeContracts.length === 1 ? "έργο" : "έργα";
+
+  return `${currencyFormatter.format(totalAmount)} / ${activeContracts.length} ${projectsLabel}`;
 }
 
 function EmployeeActiveToggle({ employee }: Readonly<{ employee: Employee }>) {
@@ -50,10 +61,12 @@ function EmployeeActiveToggle({ employee }: Readonly<{ employee: Employee }>) {
 
 export function EmployeesTable({
   employees,
+  contractsByEmployeeId,
   canManage,
   onEditEmployee,
 }: Readonly<{
   employees: Employee[];
+  contractsByEmployeeId: Map<string, EmployeeProjectContract[]>;
   canManage: boolean;
   onEditEmployee: (employee: Employee) => void;
 }>) {
@@ -82,53 +95,62 @@ export function EmployeesTable({
               <th className="px-5 py-3 font-semibold">Ημερομίσθιο</th>
               <th className="px-5 py-3 font-semibold">Ωρομίσθιο</th>
               <th className="px-5 py-3 font-semibold">Υπερωρία</th>
+              <th className="px-5 py-3 font-semibold">Συμβάσεις έργων</th>
               <th className="px-5 py-3 font-semibold">Κατάσταση</th>
               <th className="px-5 py-3 font-semibold">Σημειώσεις</th>
               <th className="px-5 py-3 font-semibold">Ενέργειες</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {employees.map((employee) => (
-              <tr key={employee.id}>
-                <td className="px-5 py-4 font-medium text-slate-950">
-                  {employee.full_name}
-                </td>
-                <td className="px-5 py-4">
-                  <EmployeeTypeBadge employeeType={employee.employee_type} />
-                </td>
-                <td className="px-5 py-4 text-slate-700">
-                  {formatRate(employee.daily_rate)}
-                </td>
-                <td className="px-5 py-4 text-slate-700">
-                  {formatRate(employee.hourly_rate)}
-                </td>
-                <td className="px-5 py-4 text-slate-700">
-                  {formatRate(employee.overtime_rate)}
-                </td>
-                <td className="px-5 py-4">
-                  <EmployeeStatusBadge active={employee.active} />
-                </td>
-                <td className="max-w-xs truncate px-5 py-4 text-slate-700">
-                  {employee.notes ?? "-"}
-                </td>
-                <td className="px-5 py-4">
-                  {canManage ? (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onEditEmployee(employee)}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                      >
-                        Επεξεργασία
-                      </button>
-                      <EmployeeActiveToggle employee={employee} />
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-500">Προβολή μόνο</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {employees.map((employee) => {
+              const contracts = contractsByEmployeeId.get(employee.id) ?? [];
+              const isSubcontractor = employee.employee_type === "subcontractor";
+
+              return (
+                <tr key={employee.id}>
+                  <td className="px-5 py-4 font-medium text-slate-950">
+                    {employee.full_name}
+                  </td>
+                  <td className="px-5 py-4">
+                    <EmployeeTypeBadge employeeType={employee.employee_type} />
+                  </td>
+                  <td className="px-5 py-4 text-slate-700">
+                    {isSubcontractor ? "-" : formatRate(employee.daily_rate)}
+                  </td>
+                  <td className="px-5 py-4 text-slate-700">
+                    {isSubcontractor ? "-" : formatRate(employee.hourly_rate)}
+                  </td>
+                  <td className="px-5 py-4 text-slate-700">
+                    {isSubcontractor ? "-" : formatRate(employee.overtime_rate)}
+                  </td>
+                  <td className="px-5 py-4 text-slate-700">
+                    {isSubcontractor ? contractSummary(contracts) : "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <EmployeeStatusBadge active={employee.active} />
+                  </td>
+                  <td className="max-w-xs truncate px-5 py-4 text-slate-700">
+                    {employee.notes ?? "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    {canManage ? (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onEditEmployee(employee)}
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Επεξεργασία
+                        </button>
+                        <EmployeeActiveToggle employee={employee} />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500">Προβολή μόνο</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

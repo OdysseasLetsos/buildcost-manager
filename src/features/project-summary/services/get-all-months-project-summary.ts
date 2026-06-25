@@ -69,6 +69,15 @@ function addProjectRow(
     return { ...nextProject, costs: { ...nextProject.costs } };
   }
 
+  const costs = addCostBreakdown(existingProject.costs, nextProject.costs);
+  // Subcontractor contracts are project-level committed costs, not monthly entries.
+  // Keep them once in all-months aggregation instead of adding the same contract
+  // amount once per month.
+  costs.subcontractorContracts = Math.max(
+    existingProject.costs.subcontractorContracts,
+    nextProject.costs.subcontractorContracts,
+  );
+
   return {
     ...existingProject,
     hours: existingProject.hours + nextProject.hours,
@@ -82,7 +91,7 @@ function addProjectRow(
       existingProject.remainingRevenue + nextProject.remainingRevenue,
     totalCost: existingProject.totalCost + nextProject.totalCost,
     profit: existingProject.profit + nextProject.profit,
-    costs: addCostBreakdown(existingProject.costs, nextProject.costs),
+    costs,
     quoteTotals: { ...existingProject.quoteTotals },
   };
 }

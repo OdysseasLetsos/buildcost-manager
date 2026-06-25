@@ -370,6 +370,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      employee_project_contracts: {
+        Row: {
+          id: string;
+          company_id: string;
+          employee_id: string;
+          project_id: string;
+          contract_amount: number;
+          notes: string | null;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          employee_id: string;
+          project_id: string;
+          contract_amount?: number;
+          notes?: string | null;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          employee_id?: string;
+          project_id?: string;
+          contract_amount?: number;
+          notes?: string | null;
+          status?: string;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       features: {
         Row: {
           id: string;
