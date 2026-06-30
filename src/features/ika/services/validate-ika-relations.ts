@@ -1,5 +1,6 @@
 import { getEmployeeById } from "@/src/features/employees/services/get-employee-by-id";
-import { requireOpenMonth } from "@/src/features/monthly-periods/services/require-open-month";
+import { getMonthlyPeriodById } from "@/src/features/monthly-periods/services/get-monthly-period-by-id";
+import { assertWritablePaymentMonth } from "@/src/features/payments/services/payment-month-rules";
 
 export async function validateIkaRelations(
   companyId: string,
@@ -9,13 +10,15 @@ export async function validateIkaRelations(
   },
 ) {
   const [monthlyPeriod, employee] = await Promise.all([
-    requireOpenMonth(input.monthId),
+    getMonthlyPeriodById(companyId, input.monthId),
     getEmployeeById(companyId, input.employeeId),
   ]);
 
-  if (monthlyPeriod.company_id !== companyId) {
-    throw new Error("Ο μήνας δεν ανήκει στην τρέχουσα εταιρεία.");
+  if (!monthlyPeriod) {
+    throw new Error("Ο μήνας δεν βρέθηκε.");
   }
+
+  assertWritablePaymentMonth(monthlyPeriod);
 
   if (!employee || !employee.active) {
     throw new Error("Ο εργαζόμενος δεν είναι ενεργός.");

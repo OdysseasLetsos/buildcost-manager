@@ -28,7 +28,9 @@ export async function upsertEmployeeIka(
   const user = await requireUser();
   const currentCompany = await getCurrentCompany();
 
-  if (!currentCompany) return { ok: false, message: "Δεν βρέθηκε ενεργή εταιρεία." };
+  if (!currentCompany) {
+    return { ok: false, message: "Δεν βρέθηκε ενεργή εταιρεία." };
+  }
 
   const companyId = currentCompany.company.id;
   await requireCompanyMember(companyId);
@@ -58,7 +60,8 @@ export async function upsertEmployeeIka(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Η εγγραφή ΙΚΑ δεν είναι έγκυρη.",
+      message:
+        error instanceof Error ? error.message : "Η εγγραφή ΙΚΑ δεν είναι έγκυρη.",
     };
   }
 

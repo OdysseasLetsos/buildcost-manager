@@ -8,6 +8,7 @@ import { getIkaAllocationPreview } from "@/src/features/ika/services/get-ika-all
 import { getMonthlyPeriods } from "@/src/features/monthly-periods/services/get-monthly-periods";
 import { PaymentsPageClient } from "@/src/features/payments/components/PaymentsPageClient";
 import { getEmployeePayments } from "@/src/features/payments/services/get-employee-payments";
+import { getEmployeeBenefits } from "@/src/features/payments/services/get-employee-benefits";
 import { getPaymentAllocationPreview } from "@/src/features/payments/services/get-payment-allocation-preview";
 import {
   getTodayPaymentDateKey,
@@ -69,12 +70,14 @@ export default async function PaymentsPage() {
   const [
     payments,
     ikaRows,
+    benefits,
     allEmployees,
     paymentAllocationEntries,
     ikaAllocationEntries,
   ] = await Promise.all([
     getEmployeePayments(companyId),
     getEmployeeIka(companyId),
+    getEmployeeBenefits(companyId),
     getEmployees(companyId),
     Promise.all(
       monthlyPeriods.map(
@@ -100,6 +103,7 @@ export default async function PaymentsPage() {
     <PaymentsPageClient
       payments={payments}
       ikaRows={ikaRows}
+      benefits={benefits}
       monthlyPeriods={monthlyPeriods}
       employees={allEmployees.filter((employee) => employee.active)}
       defaultMonthId={defaultMonthId}

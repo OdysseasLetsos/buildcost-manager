@@ -244,6 +244,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      employee_benefits: {
+        Row: {
+          id: string;
+          company_id: string;
+          employee_id: string;
+          month_key: string;
+          benefit_type: string;
+          amount: number;
+          benefit_date: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          employee_id: string;
+          month_key: string;
+          benefit_type: string;
+          amount: number;
+          benefit_date: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          employee_id?: string;
+          month_key?: string;
+          benefit_type?: string;
+          amount?: number;
+          benefit_date?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       employee_ika: {
         Row: {
           id: string;
