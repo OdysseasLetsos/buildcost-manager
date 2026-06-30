@@ -6,14 +6,12 @@ import {
   expenseAllocationMethods,
   expenseCategoryLabels,
   generalExpenseCategories,
-  officeExpenseCategories,
   type ExpenseAllocationMethod,
   type ExpenseScope,
 } from "../constants";
 
 export function ExpenseFilters({
   monthId,
-  scope,
   category,
   allocationMethod,
   search,
@@ -34,8 +32,6 @@ export function ExpenseFilters({
   onAllocationMethodChange: (value: string) => void;
   onSearchChange: (value: string) => void;
 }>) {
-  const categories = scope === "general" ? generalExpenseCategories : officeExpenseCategories;
-
   return (
     <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-4">
       <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
@@ -61,7 +57,7 @@ export function ExpenseFilters({
           className="rounded-lg border border-slate-300 px-3 py-2"
         >
           <option value="">Όλες</option>
-          {categories.map((item) => (
+          {generalExpenseCategories.map((item) => (
             <option key={item.value} value={item.value}>
               {expenseCategoryLabels[item.value]}
             </option>

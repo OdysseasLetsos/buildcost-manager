@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MaterialsPageClient } from "@/src/features/materials/components/MaterialsPageClient";
+import type { MaterialWithRelations } from "@/src/features/materials/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
+import type { Project } from "@/src/features/projects/types";
 import { createExpense } from "../actions/create-expense";
 import { updateExpense } from "../actions/update-expense";
 import type { ExpenseScope } from "../constants";
@@ -15,17 +18,15 @@ import type {
 import { ExpenseAllocationPreview } from "./ExpenseAllocationPreview";
 import { ExpenseFilters } from "./ExpenseFilters";
 import { ExpenseForm } from "./ExpenseForm";
-import { ExpenseScopeTabs } from "./ExpenseScopeTabs";
 import { ExpensesSummaryCards } from "./ExpensesSummaryCards";
 import { ExpensesTable } from "./ExpensesTable";
 
-type ExpenseTab = ExpenseScope | "allocation";
+type ExpensesSection = "materials" | "general" | "fixed";
 
 function filterExpenses(
   expenses: ExpenseWithRelations[],
   filters: {
     monthId: string;
-    scope: ExpenseScope;
     category: string;
     allocationMethod: string;
     search: string;
@@ -35,7 +36,6 @@ function filterExpenses(
   return expenses.filter(
     (expense) =>
       (!filters.monthId || expense.month_id === filters.monthId) &&
-      expense.scope === filters.scope &&
       (!filters.category || expense.category === filters.category) &&
       (!filters.allocationMethod ||
         expense.allocation_method === filters.allocationMethod) &&
@@ -46,23 +46,82 @@ function filterExpenses(
   );
 }
 
+function ExpensesSectionTabs({
+  activeSection,
+  onSectionChange,
+  showMaterials,
+  showGeneral,
+}: Readonly<{
+  activeSection: ExpensesSection;
+  onSectionChange: (section: ExpensesSection) => void;
+  showMaterials: boolean;
+  showGeneral: boolean;
+}>) {
+  const tabs: { value: ExpensesSection; label: string; visible: boolean }[] = [
+    { value: "materials", label: "Υλικά", visible: showMaterials },
+    { value: "general", label: "Γενικά έξοδα", visible: showGeneral },
+    { value: "fixed", label: "Πάγια έξοδα", visible: true },
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+      {tabs
+        .filter((tab) => tab.visible)
+        .map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => onSectionChange(tab.value)}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              activeSection === tab.value
+                ? "bg-blue-950 text-white"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+    </div>
+  );
+}
+
 export function ExpensesPageClient({
   expenses,
+  materials,
+  projects,
   monthlyPeriods,
   defaultMonthId,
-  canManage,
-  featureAvailable,
+  canManageExpenses,
+  canManageMaterials,
+  expensesFeatureAvailable,
+  materialsFeatureAvailable,
   allocationPreview,
+  initialSection,
 }: Readonly<{
   expenses: ExpenseWithRelations[];
+  materials: MaterialWithRelations[];
+  projects: Project[];
   monthlyPeriods: MonthlyPeriod[];
   defaultMonthId: string;
-  canManage: boolean;
-  featureAvailable: boolean;
+  canManageExpenses: boolean;
+  canManageMaterials: boolean;
+  expensesFeatureAvailable: boolean;
+  materialsFeatureAvailable: boolean;
   allocationPreview: Record<string, ExpenseAllocationPreviewData>;
+  initialSection?: "materials";
 }>) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ExpenseTab>("general");
+  const canShowMaterials = canManageMaterials && materialsFeatureAvailable;
+  const canShowGeneral = canManageExpenses && expensesFeatureAvailable;
+  const [activeSection, setActiveSection] = useState<ExpensesSection>(
+    initialSection === "materials" && canShowMaterials
+      ? "materials"
+      : canShowMaterials
+        ? "materials"
+        : canShowGeneral
+          ? "general"
+          : "fixed",
+  );
   const [monthId, setMonthId] = useState(defaultMonthId);
   const [category, setCategory] = useState("");
   const [allocationMethod, setAllocationMethod] = useState("");
@@ -84,41 +143,24 @@ export function ExpensesPageClient({
         .map((period) => period.id),
     [monthlyPeriods],
   );
-  const activeScope: ExpenseScope = activeTab === "office" ? "office" : "general";
+  const activeScope: ExpenseScope = "general";
   const filteredExpenses = useMemo(
     () =>
       filterExpenses(expenses, {
         monthId: effectiveMonthId,
-        scope: activeScope,
         category,
         allocationMethod,
         search,
       }),
-    [activeScope, allocationMethod, category, effectiveMonthId, expenses, search],
-  );
-  const summaryExpenses = useMemo(
-    () => {
-      const normalizedSearch = search.trim().toLowerCase();
-
-      return expenses.filter(
-        (expense) =>
-          (!effectiveMonthId || expense.month_id === effectiveMonthId) &&
-          (!category || expense.category === category) &&
-          (!allocationMethod || expense.allocation_method === allocationMethod) &&
-          (!normalizedSearch ||
-            expense.category.toLowerCase().includes(normalizedSearch) ||
-            (expense.description ?? "").toLowerCase().includes(normalizedSearch) ||
-            (expense.notes ?? "").toLowerCase().includes(normalizedSearch)),
-      );
-    },
     [allocationMethod, category, effectiveMonthId, expenses, search],
   );
-  const summary = useMemo(() => getExpensesSummary(summaryExpenses), [summaryExpenses]);
+  const summary = useMemo(() => getExpensesSummary(filteredExpenses), [filteredExpenses]);
   const selectedAllocationPreview = allocationPreview[effectiveMonthId] ?? {
     projectTotals: [],
     warnings: [],
   };
-  const canMutate = canManage && featureAvailable && !selectedMonthLocked;
+  const canMutateExpenses =
+    canManageExpenses && expensesFeatureAvailable && !selectedMonthLocked;
 
   function handleSuccess() {
     setShowForm(false);
@@ -126,8 +168,8 @@ export function ExpensesPageClient({
     router.refresh();
   }
 
-  function handleTabChange(tab: ExpenseTab) {
-    setActiveTab(tab);
+  function handleSectionChange(section: ExpensesSection) {
+    setActiveSection(section);
     setCategory("");
     setShowForm(false);
     setEditingExpense(null);
@@ -140,10 +182,10 @@ export function ExpensesPageClient({
           <p className="text-sm font-medium text-blue-700">BuildCost Manager</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">Έξοδα</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Διαχείριση γενικών εξόδων και εξόδων έδρας της εταιρείας.
+            Διαχείριση υλικών, γενικών εξόδων και μελλοντικά πάγιων εξόδων.
           </p>
         </div>
-        {activeTab !== "allocation" && canMutate ? (
+        {activeSection === "general" && canMutateExpenses ? (
           <button
             type="button"
             onClick={() => {
@@ -157,43 +199,59 @@ export function ExpensesPageClient({
         ) : null}
       </section>
 
-      {!featureAvailable ? (
+      {activeSection === "general" && !expensesFeatureAvailable ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           Το τρέχον πακέτο της εταιρείας δεν περιλαμβάνει Έξοδα.
         </section>
       ) : null}
 
-      {selectedMonthLocked ? (
+      {activeSection === "general" && selectedMonthLocked ? (
         <section className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
           Ο μήνας είναι κλειδωμένος και δεν επιτρέπονται αλλαγές.
         </section>
       ) : null}
 
-      <ExpensesSummaryCards summary={summary} />
-      <ExpenseScopeTabs activeTab={activeTab} onTabChange={handleTabChange} />
-
-      <ExpenseFilters
-        monthId={monthId}
-        scope={activeScope}
-        category={category}
-        allocationMethod={allocationMethod}
-        search={search}
-        monthlyPeriods={monthlyPeriods}
-        onMonthChange={setMonthId}
-        onCategoryChange={setCategory}
-        onAllocationMethodChange={setAllocationMethod}
-        onSearchChange={setSearch}
+      <ExpensesSectionTabs
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+        showMaterials={canShowMaterials}
+        showGeneral={canShowGeneral}
       />
 
-      {activeTab !== "allocation" ? (
+      {activeSection === "materials" ? (
+        <MaterialsPageClient
+          materials={materials}
+          monthlyPeriods={monthlyPeriods}
+          projects={projects}
+          canManage={canManageMaterials}
+          featureAvailable={materialsFeatureAvailable}
+          defaultMonthId={defaultMonthId}
+        />
+      ) : null}
+
+      {activeSection === "general" ? (
         <div className="space-y-5">
+          <ExpensesSummaryCards summary={summary} />
+          <ExpenseFilters
+            monthId={monthId}
+            scope={activeScope}
+            category={category}
+            allocationMethod={allocationMethod}
+            search={search}
+            monthlyPeriods={monthlyPeriods}
+            onMonthChange={setMonthId}
+            onCategoryChange={setCategory}
+            onAllocationMethodChange={setAllocationMethod}
+            onSearchChange={setSearch}
+          />
+
           <div className="flex items-center justify-between gap-4">
             <h3 className="text-xl font-semibold text-slate-950">
-              {expenseScopeLabels[activeScope]}
+              {expenseScopeLabels.general}
             </h3>
           </div>
 
-          {(showForm || editingExpense) && canMutate ? (
+          {(showForm || editingExpense) && canMutateExpenses ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <ExpenseForm
                 action={editingExpense ? updateExpense : createExpense}
@@ -211,18 +269,29 @@ export function ExpensesPageClient({
 
           <ExpensesTable
             expenses={filteredExpenses}
-            canManage={canManage && featureAvailable}
+            canManage={canMutateExpenses}
             lockedMonthIds={lockedMonthIds}
             onEditExpense={(expense) => {
               setShowForm(false);
-              setActiveTab(expense.scope);
               setEditingExpense(expense);
             }}
           />
+
+          <ExpenseAllocationPreview preview={selectedAllocationPreview} />
         </div>
-      ) : (
-        <ExpenseAllocationPreview preview={selectedAllocationPreview} />
-      )}
+      ) : null}
+
+      {activeSection === "fixed" ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm font-medium text-blue-700">Πάγια έξοδα</p>
+          <h3 className="mt-2 text-xl font-semibold text-slate-950">
+            Προσεχώς διαθέσιμο
+          </h3>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+            Η διαχείριση πάγιων εξόδων θα προστεθεί σε επόμενο βήμα.
+          </p>
+        </section>
+      ) : null}
     </div>
   );
 }
