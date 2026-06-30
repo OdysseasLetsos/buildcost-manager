@@ -9,6 +9,10 @@ import { getMonthlyPeriods } from "@/src/features/monthly-periods/services/get-m
 import { PaymentsPageClient } from "@/src/features/payments/components/PaymentsPageClient";
 import { getEmployeePayments } from "@/src/features/payments/services/get-employee-payments";
 import { getPaymentAllocationPreview } from "@/src/features/payments/services/get-payment-allocation-preview";
+import {
+  getTodayPaymentDateKey,
+  isWritablePaymentMonth,
+} from "@/src/features/payments/services/payment-month-rules";
 
 export default async function PaymentsPage() {
   const currentCompany = await getCurrentCompany();
@@ -51,10 +55,16 @@ export default async function PaymentsPage() {
   }
 
   const monthlyPeriods = await getMonthlyPeriods(companyId);
-  const latestOpenMonth = monthlyPeriods.find(
-    (period) => period.status === "open" && !period.is_locked,
+  const todayDate = getTodayPaymentDateKey();
+  const currentMonthKey = todayDate.slice(0, 7);
+  const currentOpenMonth = monthlyPeriods.find(
+    (period) => period.month_key === currentMonthKey && isWritablePaymentMonth(period),
   );
-  const defaultMonthId = latestOpenMonth?.id ?? monthlyPeriods[0]?.id ?? "";
+  const latestWritableMonth = monthlyPeriods.find((period) =>
+    isWritablePaymentMonth(period),
+  );
+  const defaultMonthId =
+    currentOpenMonth?.id ?? latestWritableMonth?.id ?? monthlyPeriods[0]?.id ?? "";
 
   const [
     payments,
@@ -93,6 +103,7 @@ export default async function PaymentsPage() {
       monthlyPeriods={monthlyPeriods}
       employees={allEmployees.filter((employee) => employee.active)}
       defaultMonthId={defaultMonthId}
+      todayDate={todayDate}
       canManage
       paymentsFeatureAvailable={paymentsFeatureAvailable}
       ikaFeatureAvailable={ikaFeatureAvailable}

@@ -4,8 +4,13 @@ import { requireUser } from "@/src/core/auth";
 import { requireFeature } from "@/src/core/entitlements";
 import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany, requireCompanyMember } from "@/src/core/tenants";
+import { getCurrentMonthKey } from "@/src/features/monthly-periods/services/month-rules";
 import { createClient } from "@/src/integrations/supabase/server";
-import type { SuggestedEmployeePayment } from "../types";
+import type {
+  PreviousPaymentBalanceBreakdown,
+  SuggestedEmployeePayment,
+  SuggestedEmployeePaymentWithCarryover,
+} from "../types";
 
 type EmployeeRateRow = {
   id: string;
@@ -14,10 +19,28 @@ type EmployeeRateRow = {
   overtime_rate: number | string | null;
 };
 
+type MonthlyPeriodSuggestionRow = {
+  id: string;
+  month_key: string;
+};
+
 type DailyWorkRateRow = {
+  month_id: string;
   hours: number | string | null;
   overtime_hours: number | string | null;
   expense_amount: number | string | null;
+};
+
+type EmployeePaymentAmountRow = {
+  month_id: string;
+  amount: number | string | null;
+};
+
+type WorkTotals = {
+  regularHours: number;
+  overtimeHours: number;
+  employeeExpenses: number;
+  rowCount: number;
 };
 
 function toNumber(value: number | string | null | undefined): number {
@@ -55,14 +78,53 @@ function rateFromEmployee(employee: EmployeeRateRow): {
   };
 }
 
-export async function getSuggestedEmployeePayment(input: {
-  monthId: string;
-  employeeId: string;
-}): Promise<SuggestedEmployeePayment | null> {
+function emptyWorkTotals(): WorkTotals {
+  return {
+    regularHours: 0,
+    overtimeHours: 0,
+    employeeExpenses: 0,
+    rowCount: 0,
+  };
+}
+
+function calculateSuggestedAmount(
+  totals: WorkTotals,
+  rates: ReturnType<typeof rateFromEmployee>,
+) {
+  const regularAmount = totals.regularHours * rates.regularHourlyRate;
+  const overtimeAmount = totals.overtimeHours * rates.overtimeHourlyRate;
+
+  return {
+    regularAmount,
+    overtimeAmount,
+    suggestedAmount: regularAmount + overtimeAmount,
+  };
+}
+
+function groupWorkByMonth(workRows: DailyWorkRateRow[]) {
+  return workRows.reduce((map, row) => {
+    const totals = map.get(row.month_id) ?? emptyWorkTotals();
+    totals.regularHours += toNumber(row.hours);
+    totals.overtimeHours += toNumber(row.overtime_hours);
+    totals.employeeExpenses += toNumber(row.expense_amount);
+    totals.rowCount += 1;
+    map.set(row.month_id, totals);
+    return map;
+  }, new Map<string, WorkTotals>());
+}
+
+function groupPaidByMonth(paymentRows: EmployeePaymentAmountRow[]) {
+  return paymentRows.reduce((map, row) => {
+    map.set(row.month_id, (map.get(row.month_id) ?? 0) + toNumber(row.amount));
+    return map;
+  }, new Map<string, number>());
+}
+
+async function requirePaymentSuggestionContext() {
   await requireUser();
   const currentCompany = await getCurrentCompany();
 
-  if (!currentCompany || !input.monthId || !input.employeeId) {
+  if (!currentCompany) {
     return null;
   }
 
@@ -71,8 +133,21 @@ export async function getSuggestedEmployeePayment(input: {
   await requireRole(companyId, ["owner", "admin", "office"]);
   await requireFeature(companyId, "payments");
 
+  return companyId;
+}
+
+export async function getSuggestedEmployeePaymentWithCarryover(input: {
+  monthId: string;
+  employeeId: string;
+}): Promise<SuggestedEmployeePaymentWithCarryover | null> {
+  const companyId = await requirePaymentSuggestionContext();
+
+  if (!companyId || !input.monthId || !input.employeeId) {
+    return null;
+  }
+
   const supabase = await createClient();
-  const [employeeResult, workResult] = await Promise.all([
+  const [employeeResult, selectedMonthResult] = await Promise.all([
     supabase
       .from("employees")
       .select("id, daily_rate, hourly_rate, overtime_rate")
@@ -81,60 +156,154 @@ export async function getSuggestedEmployeePayment(input: {
       .eq("active", true)
       .maybeSingle(),
     supabase
-      .from("daily_work_entries")
-      .select("hours, overtime_hours, expense_amount")
+      .from("monthly_periods")
+      .select("id, month_key")
       .eq("company_id", companyId)
-      .eq("month_id", input.monthId)
-      .eq("employee_id", input.employeeId),
+      .eq("id", input.monthId)
+      .maybeSingle(),
   ]);
 
-  if (employeeResult.error || workResult.error) {
-    const error = employeeResult.error ?? workResult.error;
-    console.error("[payments:getSuggestedEmployeePayment] Supabase error", {
+  if (employeeResult.error || selectedMonthResult.error) {
+    const error = employeeResult.error ?? selectedMonthResult.error;
+    console.error("[payments:getSuggestedEmployeePaymentWithCarryover] Supabase error", {
       message: error?.message,
       code: error?.code,
       details: error?.details,
       hint: error?.hint,
     });
-    throw new Error("Unable to calculate suggested employee payment.");
+    throw new Error("Δεν ήταν δυνατός ο υπολογισμός της προτεινόμενης πληρωμής.");
   }
 
   const employee = employeeResult.data as EmployeeRateRow | null;
+  const selectedMonth = selectedMonthResult.data as MonthlyPeriodSuggestionRow | null;
 
-  if (!employee) {
+  if (!employee || !selectedMonth) {
     return null;
   }
 
-  const workRows = (workResult.data ?? []) as DailyWorkRateRow[];
+  const currentMonthKey = getCurrentMonthKey();
+  const previousMonthsResult = await supabase
+    .from("monthly_periods")
+    .select("id, month_key")
+    .eq("company_id", companyId)
+    .lt("month_key", selectedMonth.month_key)
+    .lte("month_key", currentMonthKey)
+    .order("month_key", { ascending: true });
+
+  if (previousMonthsResult.error) {
+    console.error("[payments:getSuggestedEmployeePaymentWithCarryover:months] Supabase error", {
+      message: previousMonthsResult.error.message,
+      code: previousMonthsResult.error.code,
+      details: previousMonthsResult.error.details,
+      hint: previousMonthsResult.error.hint,
+    });
+    throw new Error("Δεν ήταν δυνατός ο υπολογισμός υπολοίπων προηγούμενων μηνών.");
+  }
+
+  const previousMonths = (previousMonthsResult.data ?? []) as MonthlyPeriodSuggestionRow[];
+  const monthIds = [selectedMonth.id, ...previousMonths.map((month) => month.id)];
+  const [workResult, paymentsResult] = await Promise.all([
+    supabase
+      .from("daily_work_entries")
+      .select("month_id, hours, overtime_hours, expense_amount")
+      .eq("company_id", companyId)
+      .eq("employee_id", input.employeeId)
+      .in("month_id", monthIds),
+    previousMonths.length
+      ? supabase
+          .from("employee_payments")
+          .select("month_id, amount")
+          .eq("company_id", companyId)
+          .eq("employee_id", input.employeeId)
+          .in(
+            "month_id",
+            previousMonths.map((month) => month.id),
+          )
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (workResult.error || paymentsResult.error) {
+    const error = workResult.error ?? paymentsResult.error;
+    console.error("[payments:getSuggestedEmployeePaymentWithCarryover:amounts] Supabase error", {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+    });
+    throw new Error("Δεν ήταν δυνατός ο υπολογισμός της προτεινόμενης πληρωμής.");
+  }
+
   const rates = rateFromEmployee(employee);
-  const totals = workRows.reduce(
-    (summary, row) => {
-      summary.regularHours += toNumber(row.hours);
-      summary.overtimeHours += toNumber(row.overtime_hours);
-      summary.employeeExpenses += toNumber(row.expense_amount);
-      return summary;
-    },
-    {
-      regularHours: 0,
-      overtimeHours: 0,
-      employeeExpenses: 0,
-    },
+  const workByMonth = groupWorkByMonth((workResult.data ?? []) as DailyWorkRateRow[]);
+  const paidByMonth = groupPaidByMonth(
+    (paymentsResult.data ?? []) as EmployeePaymentAmountRow[],
   );
-  const regularAmount = totals.regularHours * rates.regularHourlyRate;
-  const overtimeAmount = totals.overtimeHours * rates.overtimeHourlyRate;
+  const selectedTotals = workByMonth.get(selectedMonth.id) ?? emptyWorkTotals();
+  const selectedAmounts = calculateSuggestedAmount(selectedTotals, rates);
+  const previousMonthBreakdown: PreviousPaymentBalanceBreakdown[] = previousMonths
+    .map((month) => {
+      const totals = workByMonth.get(month.id) ?? emptyWorkTotals();
+      const amounts = calculateSuggestedAmount(totals, rates);
+      const paidAmount = paidByMonth.get(month.id) ?? 0;
+      const remainingAmount = Math.max(amounts.suggestedAmount - paidAmount, 0);
+
+      return {
+        monthKey: month.month_key,
+        suggestedAmount: amounts.suggestedAmount,
+        paidAmount,
+        remainingAmount,
+      };
+    })
+    .filter((row) => row.remainingAmount > 0);
+  const previousMonthsRemainingAmount = previousMonthBreakdown.reduce(
+    (sum, row) => sum + row.remainingAmount,
+    0,
+  );
+  const totalSuggestedPaymentAmount =
+    selectedAmounts.suggestedAmount + previousMonthsRemainingAmount;
 
   return {
     employee_id: employee.id,
     month_id: input.monthId,
-    regular_hours: totals.regularHours,
-    overtime_hours: totals.overtimeHours,
+    regular_hours: selectedTotals.regularHours,
+    overtime_hours: selectedTotals.overtimeHours,
     regular_hourly_rate: rates.regularHourlyRate,
     overtime_hourly_rate: rates.overtimeHourlyRate,
-    regular_amount: regularAmount,
-    overtime_amount: overtimeAmount,
-    employee_expenses: totals.employeeExpenses,
-    suggested_payment_amount: regularAmount + overtimeAmount,
-    has_work_entries: workRows.length > 0,
+    regular_amount: selectedAmounts.regularAmount,
+    overtime_amount: selectedAmounts.overtimeAmount,
+    employee_expenses: selectedTotals.employeeExpenses,
+    suggested_payment_amount: selectedAmounts.suggestedAmount,
+    selected_month_suggested_amount: selectedAmounts.suggestedAmount,
+    previous_months_remaining_amount: previousMonthsRemainingAmount,
+    total_suggested_payment_amount: totalSuggestedPaymentAmount,
+    previous_month_breakdown: previousMonthBreakdown,
+    has_work_entries: selectedTotals.rowCount > 0,
     has_rates: rates.hasRates,
+  };
+}
+
+export async function getSuggestedEmployeePayment(input: {
+  monthId: string;
+  employeeId: string;
+}): Promise<SuggestedEmployeePayment | null> {
+  const suggestion = await getSuggestedEmployeePaymentWithCarryover(input);
+
+  if (!suggestion) {
+    return null;
+  }
+
+  return {
+    employee_id: suggestion.employee_id,
+    month_id: suggestion.month_id,
+    regular_hours: suggestion.regular_hours,
+    overtime_hours: suggestion.overtime_hours,
+    regular_hourly_rate: suggestion.regular_hourly_rate,
+    overtime_hourly_rate: suggestion.overtime_hourly_rate,
+    regular_amount: suggestion.regular_amount,
+    overtime_amount: suggestion.overtime_amount,
+    employee_expenses: suggestion.employee_expenses,
+    suggested_payment_amount: suggestion.suggested_payment_amount,
+    has_work_entries: suggestion.has_work_entries,
+    has_rates: suggestion.has_rates,
   };
 }
