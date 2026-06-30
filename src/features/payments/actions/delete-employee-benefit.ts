@@ -6,16 +6,16 @@ import { writeAuditLog } from "@/src/core/audit";
 import { requireFeature } from "@/src/core/entitlements";
 import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany, requireCompanyMember } from "@/src/core/tenants";
-import { getMonthlyPeriodById } from "@/src/features/monthly-periods/services/get-monthly-period-by-id";
-import { assertWritablePaymentMonth } from "@/src/features/payments/services/payment-month-rules";
+import { getMonthlyPeriods } from "@/src/features/monthly-periods/services/get-monthly-periods";
 import { createClient } from "@/src/integrations/supabase/server";
-import type { IkaActionState } from "../types";
-import { ikaIdSchema } from "../validators";
+import { benefitIdSchema } from "../benefit-validators";
+import { assertWritablePaymentMonth } from "../services/payment-month-rules";
+import type { BenefitActionState, EmployeeBenefit } from "../types";
 
-export async function deleteEmployeeIka(
-  _previousState: IkaActionState,
+export async function deleteEmployeeBenefit(
+  _previousState: BenefitActionState,
   formData: FormData,
-): Promise<IkaActionState> {
+): Promise<BenefitActionState> {
   await requireUser();
   const currentCompany = await getCurrentCompany();
 
@@ -26,72 +26,74 @@ export async function deleteEmployeeIka(
   const companyId = currentCompany.company.id;
   await requireCompanyMember(companyId);
   await requireRole(companyId, ["owner", "admin", "office"]);
-  await requireFeature(companyId, "ika");
+  await requireFeature(companyId, "payments");
 
-  const validation = ikaIdSchema.safeParse(formData.get("id"));
+  const validation = benefitIdSchema.safeParse(formData.get("id"));
 
   if (!validation.success) {
-    return { ok: false, message: "Η εγγραφή ΙΚΑ δεν είναι έγκυρη." };
+    return { ok: false, message: "Η εγγραφή δεν είναι έγκυρη." };
   }
 
   const supabase = await createClient();
   const { data: row, error: loadError } = await supabase
-    .from("employee_ika")
+    .from("employee_benefits")
     .select("*")
     .eq("company_id", companyId)
     .eq("id", validation.data)
     .maybeSingle();
 
   if (loadError || !row) {
-    console.error("[ika:deleteEmployeeIka:load] Supabase error", {
+    console.error("[payments:deleteEmployeeBenefit:load] Supabase error", {
       message: loadError?.message,
       code: loadError?.code,
       details: loadError?.details,
       hint: loadError?.hint,
     });
-    return { ok: false, message: "Η εγγραφή ΙΚΑ δεν βρέθηκε." };
+    return { ok: false, message: "Η εγγραφή δεν βρέθηκε." };
   }
 
-  const monthlyPeriod = await getMonthlyPeriodById(companyId, row.month_id);
+  const benefit = row as EmployeeBenefit;
+  const month = (await getMonthlyPeriods(companyId)).find(
+    (period) => period.month_key === benefit.month_key,
+  );
 
-  if (!monthlyPeriod) {
+  if (!month) {
     return { ok: false, message: "Ο μήνας δεν βρέθηκε." };
   }
 
   try {
-    assertWritablePaymentMonth(monthlyPeriod);
+    assertWritablePaymentMonth(month);
   } catch (error) {
     return {
       ok: false,
-      message:
-        error instanceof Error ? error.message : "Η εγγραφή ΙΚΑ δεν είναι έγκυρη.",
+      message: error instanceof Error ? error.message : "Η εγγραφή δεν είναι έγκυρη.",
     };
   }
 
   const { error } = await supabase
-    .from("employee_ika")
+    .from("employee_benefits")
     .delete()
     .eq("company_id", companyId)
-    .eq("id", row.id);
+    .eq("id", benefit.id);
 
   if (error) {
-    console.error("[ika:deleteEmployeeIka] Supabase error", {
+    console.error("[payments:deleteEmployeeBenefit] Supabase error", {
       message: error.message,
       code: error.code,
       details: error.details,
       hint: error.hint,
     });
-    return { ok: false, message: "Δεν ήταν δυνατή η διαγραφή ΙΚΑ." };
+    return { ok: false, message: "Δεν ήταν δυνατή η διαγραφή εγγραφής." };
   }
 
   await writeAuditLog({
     companyId,
-    action: "employee_ika.deleted",
-    entityType: "employee_ika",
-    entityId: row.id,
-    metadata: { amount: row.ika_amount },
+    action: "employee_benefit.deleted",
+    entityType: "employee_benefit",
+    entityId: benefit.id,
+    metadata: { amount: benefit.amount, benefitDate: benefit.benefit_date },
   });
 
   revalidatePath("/payments");
-  return { ok: true, message: "Το ΙΚΑ διαγράφηκε." };
+  return { ok: true, message: "Η εγγραφή διαγράφηκε." };
 }

@@ -1,4 +1,5 @@
 import type { Database } from "@/src/integrations/supabase/types";
+import type { employeeBenefitTypes } from "./constants";
 
 export type EmployeePayment =
   Database["public"]["Tables"]["employee_payments"]["Row"];
@@ -76,6 +77,29 @@ export type PaymentActionState = {
   fieldErrors?: Partial<Record<string, string>>;
 };
 
+export type EmployeeBenefitType = (typeof employeeBenefitTypes)[number];
+
+export type EmployeeBenefit = Omit<
+  Database["public"]["Tables"]["employee_benefits"]["Row"],
+  "benefit_type"
+> & {
+  benefit_type: EmployeeBenefitType;
+};
+
+export type EmployeeBenefitWithRelations = EmployeeBenefit & {
+  employeeName: string;
+};
+
+export type BenefitActionState = {
+  ok: boolean;
+  message?: string;
+  fieldErrors?: Partial<Record<string, string>>;
+};
+
 export const initialPaymentActionState: PaymentActionState = {
+  ok: false,
+};
+
+export const initialBenefitActionState: BenefitActionState = {
   ok: false,
 };
