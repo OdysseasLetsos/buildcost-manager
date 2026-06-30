@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/src/integrations/supabase/server";
 import type { DailyWorkActionState } from "../types";
 import { getDailyWorkEntryById } from "../services/get-daily-work-entry-by-id";
+import { DUPLICATE_DAILY_WORK_ERROR } from "../services/date-rules";
 import { validateDailyWorkRelations } from "../services/validate-daily-work-relations";
 import { dailyWorkEntryIdSchema, dailyWorkInputSchema } from "../validators";
 
@@ -81,11 +82,14 @@ export async function updateDailyWorkEntry(
   const input = validation.data;
 
   try {
-    await validateDailyWorkRelations(companyId, input);
+    await validateDailyWorkRelations(companyId, input, { entryId: entryId.data });
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Η καταχώρηση δεν είναι έγκυρη.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Η καταχώρηση δεν είναι έγκυρη.",
     };
   }
 
@@ -115,7 +119,13 @@ export async function updateDailyWorkEntry(
       hint: error.hint,
     });
 
-    return { ok: false, message: "Δεν ήταν δυνατή η ενημέρωση καταχώρησης." };
+    return {
+      ok: false,
+      message:
+        error.code === "23505"
+          ? DUPLICATE_DAILY_WORK_ERROR
+          : "Δεν ήταν δυνατή η ενημέρωση καταχώρησης.",
+    };
   }
 
   await writeAuditLog({

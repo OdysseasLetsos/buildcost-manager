@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import type { Employee } from "@/src/features/employees/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
@@ -16,6 +16,18 @@ function decimalValue(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
+function defaultDateForMonth(period: MonthlyPeriod | undefined, todayDate: string): string {
+  if (!period) {
+    return todayDate;
+  }
+
+  if (period.month_key < todayDate.slice(0, 7)) {
+    return period.ends_on;
+  }
+
+  return todayDate;
+}
+
 export function DailyWorkForm({
   action,
   entry,
@@ -23,6 +35,7 @@ export function DailyWorkForm({
   employees,
   projects,
   defaultMonthId,
+  todayDate,
   submitLabel,
   onSuccess,
 }: Readonly<{
@@ -32,6 +45,7 @@ export function DailyWorkForm({
   employees: Employee[];
   projects: Project[];
   defaultMonthId: string;
+  todayDate: string;
   submitLabel: string;
   onSuccess?: () => void;
 }>) {
@@ -39,6 +53,21 @@ export function DailyWorkForm({
     action,
     initialDailyWorkActionState,
   );
+  const [selectedMonthId, setSelectedMonthId] = useState(
+    entry?.month_id ?? defaultMonthId,
+  );
+  const selectedMonth = useMemo(
+    () => monthlyPeriods.find((period) => period.id === selectedMonthId),
+    [monthlyPeriods, selectedMonthId],
+  );
+  const [workDate, setWorkDate] = useState(
+    entry?.work_date ?? defaultDateForMonth(selectedMonth, todayDate),
+  );
+  const dateMin = selectedMonth?.starts_on ?? undefined;
+  const dateMax =
+    selectedMonth && selectedMonth.ends_on < todayDate
+      ? selectedMonth.ends_on
+      : todayDate;
 
   useEffect(() => {
     if (state.ok) {
@@ -67,7 +96,13 @@ export function DailyWorkForm({
           Μήνας
           <select
             name="monthId"
-            defaultValue={entry?.month_id ?? defaultMonthId}
+            value={selectedMonthId}
+            onChange={(event) => {
+              const nextMonthId = event.target.value;
+              const nextMonth = monthlyPeriods.find((period) => period.id === nextMonthId);
+              setSelectedMonthId(nextMonthId);
+              setWorkDate(defaultDateForMonth(nextMonth, todayDate));
+            }}
             required
             className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
           >
@@ -75,6 +110,9 @@ export function DailyWorkForm({
             {monthlyPeriods.map((period) => (
               <option key={period.id} value={period.id}>
                 {period.month_key}
+                {period.month_key < todayDate.slice(0, 7)
+                  ? " - ξεκλείδωτος για διορθώσεις"
+                  : ""}
               </option>
             ))}
           </select>
@@ -85,10 +123,16 @@ export function DailyWorkForm({
           <input
             name="workDate"
             type="date"
-            defaultValue={entry?.work_date ?? ""}
+            value={workDate}
+            onChange={(event) => setWorkDate(event.target.value)}
+            min={dateMin}
+            max={dateMax}
             required
             className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
           />
+          <span className="text-xs font-normal text-slate-500">
+            Δεν επιτρέπονται μελλοντικές ημερομηνίες.
+          </span>
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
@@ -147,6 +191,10 @@ export function DailyWorkForm({
             defaultValue={decimalValue(entry?.overtime_hours)}
             className="rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none transition focus:border-blue-700 focus:ring-2 focus:ring-blue-100"
           />
+          <span className="text-xs font-normal text-slate-500">
+            Οι υπερωρίες επιτρέπονται μόνο αφού συμπληρωθούν 8 ώρες εργασίας
+            την ίδια ημέρα.
+          </span>
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
