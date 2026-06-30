@@ -1,13 +1,8 @@
-import {
-  expenseCategoryLabels,
-  generalExpenseCategories,
-  officeExpenseCategories,
-  type ExpenseScope,
-} from "../constants";
+import { expenseCategoryLabels, type ExpenseScope } from "../constants";
 
 const categoriesByScope: Record<ExpenseScope, readonly string[]> = {
-  general: generalExpenseCategories.map((category) => category.value),
-  office: officeExpenseCategories.map((category) => category.value),
+  general: Object.keys(expenseCategoryLabels),
+  office: Object.keys(expenseCategoryLabels),
 };
 
 export function validateExpenseCategory(scope: ExpenseScope, category: string) {

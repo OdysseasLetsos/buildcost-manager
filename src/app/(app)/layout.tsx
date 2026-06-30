@@ -60,18 +60,11 @@ const appNavigationItems: AppNavigationItem[] = [
     featureCode: "payments",
   },
   {
-    href: "/materials",
-    label: "Υλικά",
-    icon: "materials",
-    allowedRoles: ["owner", "admin", "office", "foreman"],
-    featureCode: "materials",
-  },
-  {
     href: "/expenses",
     label: "Έξοδα",
     icon: "expenses",
-    allowedRoles: ["owner", "admin", "office"],
-    featureCode: "expenses",
+    allowedRoles: ["owner", "admin", "office", "foreman"],
+    anyFeatureCode: ["expenses", "materials"],
   },
   {
     href: "/revenues",

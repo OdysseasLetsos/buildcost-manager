@@ -1,14 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import {
   allocationMethodLabels,
   expenseAllocationMethods,
   expenseCategoryLabels,
-  expenseScopeLabels,
   generalExpenseCategories,
-  officeExpenseCategories,
   type ExpenseAllocationMethod,
   type ExpenseScope,
 } from "../constants";
@@ -42,13 +40,8 @@ export function ExpenseForm({
   onSuccess?: () => void;
 }>) {
   const [state, formAction, isPending] = useActionState(action, initialExpenseActionState);
-  const [scope, setScope] = useState<ExpenseScope>(expense?.scope ?? defaultScope);
   const [allocationMethod, setAllocationMethod] = useState(
     expense?.allocation_method ?? "by_project_hours",
-  );
-  const categories = useMemo(
-    () => (scope === "general" ? generalExpenseCategories : officeExpenseCategories),
-    [scope],
   );
 
   useEffect(() => {
@@ -58,6 +51,7 @@ export function ExpenseForm({
   return (
     <form action={formAction} className="grid gap-4">
       {expense ? <input type="hidden" name="id" value={expense.id} /> : null}
+      <input type="hidden" name="scope" value={expense?.scope ?? defaultScope} />
       {state.message ? (
         <p
           className={`rounded-lg border px-4 py-3 text-sm ${
@@ -102,27 +96,14 @@ export function ExpenseForm({
           />
         </label>
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-          Τύπος Εξόδου
-          <select
-            name="scope"
-            value={scope}
-            onChange={(event) => setScope(event.target.value as ExpenseScope)}
-            required
-            className="rounded-lg border border-slate-300 px-3 py-2"
-          >
-            <option value="general">{expenseScopeLabels.general}</option>
-            <option value="office">{expenseScopeLabels.office}</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Κατηγορία
           <select
             name="category"
-            defaultValue={expense?.category ?? categories[0]?.value ?? ""}
+            defaultValue={expense?.category ?? generalExpenseCategories[0]?.value ?? ""}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           >
-            {categories.map((category) => (
+            {generalExpenseCategories.map((category) => (
               <option key={category.value} value={category.value}>
                 {expenseCategoryLabels[category.value]}
               </option>

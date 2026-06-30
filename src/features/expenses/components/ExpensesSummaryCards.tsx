@@ -11,14 +11,12 @@ export function ExpensesSummaryCards({
   summary: ExpensesSummary;
 }>) {
   const cards = [
-    ["Γενικά Έξοδα", currencyFormatter.format(summary.generalAmount)],
-    ["Έξοδα Έδρας", currencyFormatter.format(summary.officeAmount)],
-    ["Σύνολο Μήνα", currencyFormatter.format(summary.totalAmount)],
+    ["Γενικά Έξοδα", currencyFormatter.format(summary.totalAmount)],
     ["Προς Κατανομή", currencyFormatter.format(summary.pendingAmount)],
   ];
 
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-4 md:grid-cols-2">
       {cards.map(([label, value]) => (
         <article
           key={label}

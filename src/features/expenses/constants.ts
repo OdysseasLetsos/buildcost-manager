@@ -10,37 +10,42 @@ export const expenseAllocationMethods = [
 export const expenseAllocationStatuses = ["pending", "allocated"] as const;
 
 export const generalExpenseCategories = [
-  { value: "pos", label: "POS" },
-  { value: "invoice_issuing", label: "Έκδοση τιμολογίων" },
-  { value: "fmy_tax", label: "ΦΜΥ" },
-  { value: "vat_tax", label: "ΦΠΑ" },
-  { value: "fee_tax", label: "ΦΕΕ" },
-  { value: "accountant", label: "Λογιστής" },
-  { value: "safety_technician", label: "Τεχνικός ασφαλείας" },
-  { value: "chambers", label: "Επιμελητήρια" },
-] as const;
-
-export const officeExpenseCategories = [
-  { value: "rent", label: "Ενοίκιο / Σπίτι" },
-  { value: "electricity", label: "ΔΕΗ" },
-  { value: "water", label: "Νερό" },
-  { value: "phone", label: "Τηλέφωνο" },
-  { value: "tools", label: "Εργαλεία" },
-  { value: "nissan_vanette", label: "Nissan Vanette" },
-  { value: "fuel", label: "Καύσιμα" },
+  { value: "office", label: "Γραφείο" },
   { value: "transport", label: "Μεταφορικά" },
+  { value: "accountant", label: "Λογιστής" },
+  { value: "taxes", label: "Φόροι" },
+  { value: "other", label: "Άλλο" },
 ] as const;
 
-export const expenseCategoryLabels: Record<string, string> = Object.fromEntries(
-  [...generalExpenseCategories, ...officeExpenseCategories].map((category) => [
-    category.value,
-    category.label,
-  ]),
-);
+export const officeExpenseCategories = generalExpenseCategories;
+
+const legacyExpenseCategoryLabels: Record<string, string> = {
+  pos: "POS",
+  invoice_issuing: "Έκδοση τιμολογίων",
+  fmy_tax: "ΦΜΥ",
+  vat_tax: "ΦΠΑ",
+  fee_tax: "ΦΕΕ",
+  safety_technician: "Τεχνικός ασφαλείας",
+  chambers: "Επιμελητήρια",
+  rent: "Ενοίκιο / Σπίτι",
+  electricity: "ΔΕΗ",
+  water: "Νερό",
+  phone: "Τηλέφωνο",
+  tools: "Εργαλεία",
+  nissan_vanette: "Nissan Vanette",
+  fuel: "Καύσιμα",
+};
+
+export const expenseCategoryLabels: Record<string, string> = {
+  ...Object.fromEntries(
+    generalExpenseCategories.map((category) => [category.value, category.label]),
+  ),
+  ...legacyExpenseCategoryLabels,
+};
 
 export const expenseScopeLabels = {
   general: "Γενικά Έξοδα",
-  office: "Έξοδα Έδρας",
+  office: "Γενικά Έξοδα",
 } as const;
 
 export const allocationMethodLabels = {
