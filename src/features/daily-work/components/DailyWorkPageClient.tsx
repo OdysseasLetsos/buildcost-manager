@@ -32,6 +32,10 @@ function filterEntries(
   );
 }
 
+function isWritableMonth(period: MonthlyPeriod, currentMonthKey: string): boolean {
+  return period.status === "open" && !period.is_locked && period.month_key <= currentMonthKey;
+}
+
 export function DailyWorkPageClient({
   entries,
   monthlyPeriods,
@@ -40,6 +44,8 @@ export function DailyWorkPageClient({
   canManage,
   featureAvailable,
   defaultMonthId,
+  todayDate,
+  currentMonthKey,
 }: Readonly<{
   entries: DailyWorkEntryWithRelations[];
   monthlyPeriods: MonthlyPeriod[];
@@ -48,6 +54,8 @@ export function DailyWorkPageClient({
   canManage: boolean;
   featureAvailable: boolean;
   defaultMonthId: string;
+  todayDate: string;
+  currentMonthKey: string;
 }>) {
   const router = useRouter();
   const [monthId, setMonthId] = useState(defaultMonthId);
@@ -58,12 +66,16 @@ export function DailyWorkPageClient({
   const [editingEntry, setEditingEntry] =
     useState<DailyWorkEntryWithRelations | null>(null);
 
+  const writableMonthlyPeriods = useMemo(
+    () => monthlyPeriods.filter((period) => isWritableMonth(period, currentMonthKey)),
+    [currentMonthKey, monthlyPeriods],
+  );
   const selectedMonth = monthlyPeriods.find((period) => period.id === monthId);
   const selectedMonthLocked =
     selectedMonth?.status === "locked" || selectedMonth?.is_locked === true;
-  const openMonthlyPeriods = monthlyPeriods.filter(
-    (period) => period.status === "open" && !period.is_locked,
-  );
+  const selectedMonthWritable = selectedMonth
+    ? isWritableMonth(selectedMonth, currentMonthKey)
+    : false;
   const filteredEntries = useMemo(
     () => filterEntries(entries, { monthId, workDate, employeeId, projectId }),
     [employeeId, entries, monthId, projectId, workDate],
@@ -79,7 +91,7 @@ export function DailyWorkPageClient({
     router.refresh();
   }
 
-  const canMutate = canManage && featureAvailable && !selectedMonthLocked;
+  const canMutate = canManage && featureAvailable && selectedMonthWritable;
 
   return (
     <div className="space-y-6">
@@ -111,9 +123,29 @@ export function DailyWorkPageClient({
         </section>
       ) : null}
 
+      {featureAvailable && canManage && !defaultMonthId ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+          Δεν υπάρχει ανοιχτός τρέχων μήνας για καταχώρηση ημερήσιας εργασίας.
+        </section>
+      ) : null}
+
       {selectedMonthLocked ? (
         <section className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
           Ο μήνας είναι κλειδωμένος και δεν επιτρέπονται αλλαγές.
+        </section>
+      ) : null}
+
+      {selectedMonth && selectedMonth.month_key > currentMonthKey ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+          Δεν μπορείτε να καταχωρήσετε εργασία σε μελλοντικό μήνα.
+        </section>
+      ) : null}
+
+      {selectedMonth &&
+      selectedMonth.month_key < currentMonthKey &&
+      selectedMonthWritable ? (
+        <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900">
+          Ο προηγούμενος μήνας είναι ξεκλειδωμένος για διορθώσεις.
         </section>
       ) : null}
 
@@ -148,10 +180,11 @@ export function DailyWorkPageClient({
           <div className="mt-5">
             <DailyWorkForm
               action={createDailyWorkEntry}
-              monthlyPeriods={openMonthlyPeriods}
+              monthlyPeriods={writableMonthlyPeriods}
               employees={employees}
               projects={projects}
               defaultMonthId={monthId || defaultMonthId}
+              todayDate={todayDate}
               submitLabel="Δημιουργία Καταχώρησης"
               onSuccess={handleMutationSuccess}
             />
@@ -177,10 +210,11 @@ export function DailyWorkPageClient({
             <DailyWorkForm
               action={updateDailyWorkEntry}
               entry={editingEntry}
-              monthlyPeriods={openMonthlyPeriods}
+              monthlyPeriods={writableMonthlyPeriods}
               employees={employees}
               projects={projects}
               defaultMonthId={monthId || defaultMonthId}
+              todayDate={todayDate}
               submitLabel="Αποθήκευση Αλλαγών"
               onSuccess={handleMutationSuccess}
             />
