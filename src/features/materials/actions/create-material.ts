@@ -8,6 +8,7 @@ import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany, requireCompanyMember } from "@/src/core/tenants";
 import { createClient } from "@/src/integrations/supabase/server";
 import { checkDuplicateMaterialInvoice } from "../services/check-duplicate-material-invoice";
+import { resolveMaterialSupplier } from "../services/resolve-material-supplier";
 import { validateMaterialRelations } from "../services/validate-material-relations";
 import type { MaterialActionState } from "../types";
 import { materialInputSchema } from "../validators";
@@ -40,6 +41,7 @@ export async function createMaterial(
     monthId: formData.get("monthId"),
     projectId: formData.get("projectId"),
     invoiceDate: formData.get("invoiceDate"),
+    supplierId: formData.get("supplierId"),
     supplierName: formData.get("supplierName"),
     supplierVat: formData.get("supplierVat"),
     invoiceNumber: formData.get("invoiceNumber"),
@@ -59,9 +61,10 @@ export async function createMaterial(
     };
   }
 
-  const input = validation.data;
+  let input = validation.data;
 
   try {
+    input = await resolveMaterialSupplier(companyId, input);
     await validateMaterialRelations(companyId, input);
     await checkDuplicateMaterialInvoice({
       companyId,
@@ -84,6 +87,7 @@ export async function createMaterial(
       company_id: companyId,
       month_id: input.monthId,
       project_id: input.projectId,
+      supplier_id: input.supplierId,
       invoice_date: input.invoiceDate,
       supplier_name: input.supplierName,
       supplier_vat: input.supplierVat,
@@ -118,5 +122,6 @@ export async function createMaterial(
   });
 
   revalidatePath("/materials");
+  revalidatePath("/expenses");
   return { ok: true, message: "Το τιμολόγιο υλικών δημιουργήθηκε." };
 }

@@ -1,6 +1,7 @@
 import type { Database } from "@/src/integrations/supabase/types";
 
 export type Material = Database["public"]["Tables"]["materials"]["Row"];
+export type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 
 export type MaterialWithRelations = Material & {
   projectCode: string;
@@ -38,6 +39,18 @@ export type MaterialActionState = {
   fieldErrors?: Partial<Record<string, string>>;
 };
 
+export type SupplierActionState = {
+  ok: boolean;
+  message?: string;
+  supplier?: Supplier;
+  existingSupplier?: Supplier;
+  fieldErrors?: Partial<Record<string, string>>;
+};
+
 export const initialMaterialActionState: MaterialActionState = {
+  ok: false,
+};
+
+export const initialSupplierActionState: SupplierActionState = {
   ok: false,
 };

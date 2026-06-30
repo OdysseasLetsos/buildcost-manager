@@ -5,8 +5,13 @@ const optionalText = z
   .trim()
   .transform((value) => (value.length > 0 ? value : null));
 
-const requiredText = (message: string) =>
-  z.string().trim().min(1, message);
+const optionalUuid = z
+  .string()
+  .trim()
+  .transform((value) => (value.length > 0 ? value : null))
+  .pipe(z.string().uuid("Ο προμηθευτής δεν είναι έγκυρος.").nullable());
+
+const requiredText = (message: string) => z.string().trim().min(1, message);
 
 const nonNegativeAmount = (fieldLabel: string) =>
   z
@@ -29,6 +34,7 @@ export const materialInputSchema = z
       .string()
       .trim()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Η ημερομηνία τιμολογίου δεν είναι έγκυρη."),
+    supplierId: optionalUuid.optional(),
     supplierName: requiredText("Συμπληρώστε προμηθευτή."),
     supplierVat: optionalText,
     invoiceNumber: requiredText("Συμπληρώστε αριθμό τιμολογίου."),

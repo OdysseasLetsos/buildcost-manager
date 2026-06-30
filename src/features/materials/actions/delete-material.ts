@@ -67,5 +67,6 @@ export async function deleteMaterial(
   });
 
   revalidatePath("/materials");
+  revalidatePath("/expenses");
   return { ok: true, message: "Το τιμολόγιο υλικών διαγράφηκε." };
 }

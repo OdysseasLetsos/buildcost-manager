@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MaterialsPageClient } from "@/src/features/materials/components/MaterialsPageClient";
-import type { MaterialWithRelations } from "@/src/features/materials/types";
+import type { MaterialWithRelations, Supplier } from "@/src/features/materials/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
 import { createExpense } from "../actions/create-expense";
@@ -88,6 +88,7 @@ function ExpensesSectionTabs({
 export function ExpensesPageClient({
   expenses,
   materials,
+  suppliers,
   projects,
   monthlyPeriods,
   defaultMonthId,
@@ -100,6 +101,7 @@ export function ExpensesPageClient({
 }: Readonly<{
   expenses: ExpenseWithRelations[];
   materials: MaterialWithRelations[];
+  suppliers: Supplier[];
   projects: Project[];
   monthlyPeriods: MonthlyPeriod[];
   defaultMonthId: string;
@@ -221,9 +223,11 @@ export function ExpensesPageClient({
       {activeSection === "materials" ? (
         <MaterialsPageClient
           materials={materials}
+          suppliers={suppliers}
           monthlyPeriods={monthlyPeriods}
           projects={projects}
           canManage={canManageMaterials}
+          canCreateSuppliers={canManageExpenses}
           featureAvailable={materialsFeatureAvailable}
           defaultMonthId={defaultMonthId}
         />

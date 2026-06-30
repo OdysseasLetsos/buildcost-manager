@@ -10,6 +10,7 @@ import { createClient } from "@/src/integrations/supabase/server";
 import { requireOpenMonth } from "../../monthly-periods/services/require-open-month";
 import { checkDuplicateMaterialInvoice } from "../services/check-duplicate-material-invoice";
 import { getMaterialById } from "../services/get-material-by-id";
+import { resolveMaterialSupplier } from "../services/resolve-material-supplier";
 import { validateMaterialRelations } from "../services/validate-material-relations";
 import type { MaterialActionState } from "../types";
 import { materialInputSchema } from "../validators";
@@ -43,6 +44,7 @@ export async function updateMaterial(
     monthId: formData.get("monthId"),
     projectId: formData.get("projectId"),
     invoiceDate: formData.get("invoiceDate"),
+    supplierId: formData.get("supplierId"),
     supplierName: formData.get("supplierName"),
     supplierVat: formData.get("supplierVat"),
     invoiceNumber: formData.get("invoiceNumber"),
@@ -62,7 +64,7 @@ export async function updateMaterial(
     };
   }
 
-  const input = validation.data;
+  let input = validation.data;
   const materialId = input.id;
 
   if (!materialId) {
@@ -74,6 +76,7 @@ export async function updateMaterial(
   if (!material) return { ok: false, message: "Το τιμολόγιο υλικών δεν βρέθηκε." };
 
   try {
+    input = await resolveMaterialSupplier(companyId, input);
     await requireOpenMonth(material.month_id);
     await validateMaterialRelations(companyId, input);
     await checkDuplicateMaterialInvoice({
@@ -97,6 +100,7 @@ export async function updateMaterial(
     .update({
       month_id: input.monthId,
       project_id: input.projectId,
+      supplier_id: input.supplierId,
       invoice_date: input.invoiceDate,
       supplier_name: input.supplierName,
       supplier_vat: input.supplierVat,
@@ -130,5 +134,6 @@ export async function updateMaterial(
   });
 
   revalidatePath("/materials");
+  revalidatePath("/expenses");
   return { ok: true, message: "Το τιμολόγιο υλικών ενημερώθηκε." };
 }
