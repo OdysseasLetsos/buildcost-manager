@@ -6,6 +6,7 @@ import { ExpensesPageClient } from "@/src/features/expenses/components/ExpensesP
 import { getExpenseAllocationPreview } from "@/src/features/expenses/services/get-expense-allocation-preview";
 import { getExpenses } from "@/src/features/expenses/services/get-expenses";
 import { getMaterials } from "@/src/features/materials/services/get-materials";
+import { getSuppliers } from "@/src/features/materials/services/get-suppliers";
 import { getMonthlyPeriods } from "@/src/features/monthly-periods/services/get-monthly-periods";
 import { getProjects } from "@/src/features/projects/services/get-projects";
 
@@ -74,7 +75,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const defaultMonthId = latestOpenMonth?.id ?? monthlyPeriods[0]?.id ?? "";
   const shouldLoadExpenses = canAccessExpenses && expensesFeatureAvailable;
   const shouldLoadMaterials = canAccessMaterials && materialsFeatureAvailable;
-  const [expenses, allocationEntries, materials, projects] = await Promise.all([
+  const [expenses, allocationEntries, materials, suppliers, projects] = await Promise.all([
     shouldLoadExpenses ? getExpenses(companyId) : Promise.resolve([]),
     shouldLoadExpenses
       ? Promise.all(
@@ -88,6 +89,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
         )
       : Promise.resolve([]),
     shouldLoadMaterials ? getMaterials(companyId) : Promise.resolve([]),
+    shouldLoadMaterials ? getSuppliers(companyId) : Promise.resolve([]),
     shouldLoadMaterials ? getProjects(companyId) : Promise.resolve([]),
   ]);
   const resolvedSearchParams = await searchParams;
@@ -98,6 +100,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     <ExpensesPageClient
       expenses={expenses}
       materials={materials}
+      suppliers={suppliers}
       projects={projects}
       monthlyPeriods={monthlyPeriods}
       defaultMonthId={defaultMonthId}

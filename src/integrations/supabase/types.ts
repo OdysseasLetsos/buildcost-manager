@@ -531,6 +531,7 @@ export type Database = {
           company_id: string;
           month_id: string;
           project_id: string;
+          supplier_id: string | null;
           invoice_date: string;
           supplier_name: string;
           supplier_vat: string | null;
@@ -550,6 +551,7 @@ export type Database = {
           company_id: string;
           month_id: string;
           project_id: string;
+          supplier_id?: string | null;
           invoice_date: string;
           supplier_name: string;
           supplier_vat?: string | null;
@@ -567,6 +569,7 @@ export type Database = {
         Update: {
           month_id?: string;
           project_id?: string;
+          supplier_id?: string | null;
           invoice_date?: string;
           supplier_name?: string;
           supplier_vat?: string | null;
@@ -577,6 +580,48 @@ export type Database = {
           total_amount?: number;
           payment_status?: string;
           notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      suppliers: {
+        Row: {
+          id: string;
+          company_id: string;
+          name: string;
+          tax_id: string;
+          address: string | null;
+          phone: string | null;
+          email: string | null;
+          notes: string | null;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          name: string;
+          tax_id: string;
+          address?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          notes?: string | null;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          tax_id?: string;
+          address?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          notes?: string | null;
+          active?: boolean;
           created_by?: string | null;
           updated_at?: string;
         };

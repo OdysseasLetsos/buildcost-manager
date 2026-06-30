@@ -8,7 +8,7 @@ import { createMaterial } from "../actions/create-material";
 import { updateMaterial } from "../actions/update-material";
 import { getMaterialsByProject } from "../services/get-materials-by-project";
 import { getMaterialsSummary } from "../services/get-materials-summary";
-import type { MaterialWithRelations } from "../types";
+import type { MaterialWithRelations, Supplier } from "../types";
 import { MaterialFilters } from "./MaterialFilters";
 import { MaterialForm } from "./MaterialForm";
 import { MaterialsByProjectChart } from "./MaterialsByProjectChart";
@@ -42,16 +42,20 @@ function filterMaterials(
 
 export function MaterialsPageClient({
   materials,
+  suppliers,
   monthlyPeriods,
   projects,
   canManage,
+  canCreateSuppliers,
   featureAvailable,
   defaultMonthId,
 }: Readonly<{
   materials: MaterialWithRelations[];
+  suppliers: Supplier[];
   monthlyPeriods: MonthlyPeriod[];
   projects: Project[];
   canManage: boolean;
+  canCreateSuppliers: boolean;
   featureAvailable: boolean;
   defaultMonthId: string;
 }>) {
@@ -166,6 +170,8 @@ export function MaterialsPageClient({
             material={editingMaterial ?? undefined}
             monthlyPeriods={openMonthlyPeriods}
             projects={activeProjects}
+            suppliers={suppliers}
+            canCreateSuppliers={canCreateSuppliers}
             defaultMonthId={effectiveMonthId}
             submitLabel={editingMaterial ? "Αποθήκευση Αλλαγών" : "Δημιουργία Τιμολογίου"}
             onSuccess={handleSuccess}
