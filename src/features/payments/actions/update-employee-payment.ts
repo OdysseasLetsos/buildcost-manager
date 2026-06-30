@@ -29,7 +29,9 @@ export async function updateEmployeePayment(
   await requireUser();
   const currentCompany = await getCurrentCompany();
 
-  if (!currentCompany) return { ok: false, message: "Δεν βρέθηκε ενεργή εταιρεία." };
+  if (!currentCompany) {
+    return { ok: false, message: "Δεν βρέθηκε ενεργή εταιρεία." };
+  }
 
   const companyId = currentCompany.company.id;
   await requireCompanyMember(companyId);
@@ -63,7 +65,9 @@ export async function updateEmployeePayment(
 
   const existing = await getEmployeePaymentById(companyId, paymentId);
 
-  if (!existing) return { ok: false, message: "Η πληρωμή δεν βρέθηκε." };
+  if (!existing) {
+    return { ok: false, message: "Η πληρωμή δεν βρέθηκε." };
+  }
 
   try {
     await validatePaymentRelations(companyId, input);

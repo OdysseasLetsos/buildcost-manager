@@ -28,7 +28,9 @@ export async function createEmployeePayment(
   const user = await requireUser();
   const currentCompany = await getCurrentCompany();
 
-  if (!currentCompany) return { ok: false, message: "Δεν βρέθηκε ενεργή εταιρεία." };
+  if (!currentCompany) {
+    return { ok: false, message: "Δεν βρέθηκε ενεργή εταιρεία." };
+  }
 
   const companyId = currentCompany.company.id;
   await requireCompanyMember(companyId);

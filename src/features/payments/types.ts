@@ -56,6 +56,20 @@ export type SuggestedEmployeePayment = {
   has_rates: boolean;
 };
 
+export type PreviousPaymentBalanceBreakdown = {
+  monthKey: string;
+  suggestedAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+};
+
+export type SuggestedEmployeePaymentWithCarryover = SuggestedEmployeePayment & {
+  selected_month_suggested_amount: number;
+  previous_months_remaining_amount: number;
+  total_suggested_payment_amount: number;
+  previous_month_breakdown: PreviousPaymentBalanceBreakdown[];
+};
+
 export type PaymentActionState = {
   ok: boolean;
   message?: string;

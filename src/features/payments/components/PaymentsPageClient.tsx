@@ -10,6 +10,7 @@ import type { EmployeeIkaWithRelations, IkaAllocationPreview as IkaAllocationPre
 import { getIkaSummary } from "@/src/features/ika/services/get-ika-summary";
 import type { Employee } from "@/src/features/employees/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
+import { isWritablePaymentMonth } from "../services/payment-month-rules";
 import { createEmployeePayment } from "../actions/create-employee-payment";
 import { updateEmployeePayment } from "../actions/update-employee-payment";
 import { getPaymentsSummary } from "../services/get-payments-summary";
@@ -54,6 +55,7 @@ export function PaymentsPageClient({
   monthlyPeriods,
   employees,
   defaultMonthId,
+  todayDate,
   canManage,
   paymentsFeatureAvailable,
   ikaFeatureAvailable,
@@ -65,6 +67,7 @@ export function PaymentsPageClient({
   monthlyPeriods: MonthlyPeriod[];
   employees: Employee[];
   defaultMonthId: string;
+  todayDate: string;
   canManage: boolean;
   paymentsFeatureAvailable: boolean;
   ikaFeatureAvailable: boolean;
@@ -86,9 +89,12 @@ export function PaymentsPageClient({
   const selectedMonth = monthlyPeriods.find((period) => period.id === effectiveMonthId);
   const selectedMonthLocked =
     selectedMonth?.status === "locked" || selectedMonth?.is_locked === true;
-  const openMonthlyPeriods = monthlyPeriods.filter(
-    (period) => period.status === "open" && !period.is_locked,
+  const writableMonthlyPeriods = monthlyPeriods.filter((period) =>
+    isWritablePaymentMonth(period),
   );
+  const selectedMonthWritable = selectedMonth
+    ? isWritablePaymentMonth(selectedMonth)
+    : false;
   const filteredPayments = useMemo(
     () =>
       filterPayments(payments, {
@@ -114,7 +120,7 @@ export function PaymentsPageClient({
     projectTotals: [],
     warnings: [],
   };
-  const canMutate = canManage && !selectedMonthLocked;
+  const canMutate = canManage && selectedMonthWritable;
 
   function handleSuccess() {
     setShowPaymentForm(false);
@@ -130,7 +136,7 @@ export function PaymentsPageClient({
         <div>
           <p className="text-sm font-medium text-blue-700">BuildCost Manager</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-            Πληρωμές & ΙΚΑ
+            Πληρωμές
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Παρακολούθηση πληρωμών εργαζομένων, ΙΚΑ και δυναμική κατανομή ανά έργο.
@@ -141,6 +147,12 @@ export function PaymentsPageClient({
       {selectedMonthLocked ? (
         <section className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
           Ο μήνας είναι κλειδωμένος και δεν επιτρέπονται αλλαγές.
+        </section>
+      ) : null}
+
+      {selectedMonth && selectedMonth.month_key > todayDate.slice(0, 7) ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+          Δεν μπορείτε να καταχωρήσετε πληρωμή σε μελλοντικό μήνα.
         </section>
       ) : null}
 
@@ -206,9 +218,10 @@ export function PaymentsPageClient({
               <PaymentForm
                 action={editingPayment ? updateEmployeePayment : createEmployeePayment}
                 payment={editingPayment ?? undefined}
-                monthlyPeriods={openMonthlyPeriods}
+                monthlyPeriods={writableMonthlyPeriods}
                 employees={employees}
                 defaultMonthId={monthId || defaultMonthId}
+                todayDate={todayDate}
                 submitLabel={editingPayment ? "Αποθήκευση Αλλαγών" : "Δημιουργία Πληρωμής"}
                 onSuccess={handleSuccess}
               />
@@ -245,7 +258,7 @@ export function PaymentsPageClient({
               <IkaForm
                 action={upsertEmployeeIka}
                 ika={editingIka ?? undefined}
-                monthlyPeriods={openMonthlyPeriods}
+                monthlyPeriods={writableMonthlyPeriods}
                 employees={employees}
                 defaultMonthId={monthId || defaultMonthId}
                 submitLabel={editingIka ? "Αποθήκευση Αλλαγών" : "Αποθήκευση ΙΚΑ"}
