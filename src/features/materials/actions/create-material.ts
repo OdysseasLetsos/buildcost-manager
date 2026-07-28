@@ -23,6 +23,10 @@ function fieldErrors(validation: ReturnType<typeof materialInputSchema.safeParse
   );
 }
 
+function calculateMaterialTotal(netAmount: number, vatAmount: number): number {
+  return Math.round((netAmount + vatAmount) * 100) / 100;
+}
+
 export async function createMaterial(
   _previousState: MaterialActionState,
   formData: FormData,
@@ -61,7 +65,13 @@ export async function createMaterial(
     };
   }
 
-  let input = validation.data;
+  let input = {
+    ...validation.data,
+    totalAmount: calculateMaterialTotal(
+      validation.data.netAmount,
+      validation.data.vatAmount,
+    ),
+  };
 
   try {
     input = await resolveMaterialSupplier(companyId, input);
