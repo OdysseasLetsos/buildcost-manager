@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
 import { createSupplier } from "../actions/create-supplier";
+import { updateSupplierContact } from "../actions/update-supplier-contact";
 import type {
   Material,
   MaterialActionState,
@@ -17,12 +18,37 @@ type MaterialFormAction = (
   formData: FormData,
 ) => Promise<MaterialActionState>;
 
+const DEFAULT_VAT_RATE = 0.24;
+
 function decimalValue(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
 function supplierDisplayName(supplier: Supplier): string {
   return `${supplier.name} - ${supplier.tax_id}`;
+}
+
+function parseAmount(value: string): number {
+  const amount = Number(value.replace(",", "."));
+  return Number.isFinite(amount) && amount >= 0 ? amount : 0;
+}
+
+function formatAmount(value: number): string {
+  return (Math.round(value * 100) / 100).toFixed(2);
+}
+
+function calculateVatFromNet(value: string): string {
+  return value.trim() ? formatAmount(parseAmount(value) * DEFAULT_VAT_RATE) : "";
+}
+
+function getMonthBounds(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  return {
+    min: `${monthKey}-01`,
+    max: `${monthKey}-${String(lastDay).padStart(2, "0")}`,
+  };
 }
 
 export function MaterialForm({
@@ -59,6 +85,18 @@ export function MaterialForm({
     ) ??
     null;
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers);
+  const [selectedMonthId, setSelectedMonthId] = useState(
+    material?.month_id ?? defaultMonthId,
+  );
+  const selectedMonth = monthlyPeriods.find(
+    (period) => period.id === selectedMonthId,
+  );
+  const selectedMonthBounds = selectedMonth
+    ? getMonthBounds(selectedMonth.month_key)
+    : null;
+  const [invoiceDate, setInvoiceDate] = useState(
+    material?.invoice_date ?? selectedMonthBounds?.min ?? "",
+  );
   const [selectedSupplierId, setSelectedSupplierId] = useState(
     initialSupplier?.id ?? "",
   );
@@ -74,10 +112,44 @@ export function MaterialForm({
   const [supplierPhone, setSupplierPhone] = useState(initialSupplier?.phone ?? "");
   const [supplierEmail, setSupplierEmail] = useState(initialSupplier?.email ?? "");
   const [showNewSupplierForm, setShowNewSupplierForm] = useState(false);
+  const [newSupplierFields, setNewSupplierFields] = useState({
+    name: "",
+    taxId: "",
+    address: "",
+    phone: "",
+    email: "",
+    notes: "",
+  });
   const [supplierState, setSupplierState] = useState<SupplierActionState>({
     ok: false,
   });
   const [isSavingSupplier, setIsSavingSupplier] = useState(false);
+  const [isUpdatingSupplier, setIsUpdatingSupplier] = useState(false);
+  const [netAmount, setNetAmount] = useState(decimalValue(material?.net_amount));
+  const [vatAmount, setVatAmount] = useState(decimalValue(material?.vat_amount));
+  const [isVatManuallyOverridden, setIsVatManuallyOverridden] = useState(() => {
+    if (!material) return false;
+
+    return (
+      Math.abs(
+        Number(material.vat_amount) -
+          Number(formatAmount(Number(material.net_amount) * DEFAULT_VAT_RATE)),
+      ) > 0.01
+    );
+  });
+  const totalAmount = formatAmount(parseAmount(netAmount) + parseAmount(vatAmount));
+  const selectedSupplier = useMemo(
+    () =>
+      availableSuppliers.find((supplier) => supplier.id === selectedSupplierId) ??
+      null,
+    [availableSuppliers, selectedSupplierId],
+  );
+  const supplierDetailsChanged = Boolean(
+    selectedSupplier &&
+      (supplierAddress.trim() !== (selectedSupplier.address ?? "") ||
+        supplierPhone.trim() !== (selectedSupplier.phone ?? "") ||
+        supplierEmail.trim() !== (selectedSupplier.email ?? "")),
+  );
 
   useEffect(() => {
     if (state.ok) onSuccess?.();
@@ -108,8 +180,74 @@ export function MaterialForm({
             ),
       );
       selectSupplier(supplier);
+      setNewSupplierFields({
+        name: "",
+        taxId: "",
+        address: "",
+        phone: "",
+        email: "",
+        notes: "",
+      });
       setShowNewSupplierForm(false);
     }
+  }
+
+  async function handleUpdateSupplierContact() {
+    if (!selectedSupplierId) return;
+
+    setIsUpdatingSupplier(true);
+    const data = new FormData();
+    data.set("id", selectedSupplierId);
+    data.set("address", supplierAddress);
+    data.set("phone", supplierPhone);
+    data.set("email", supplierEmail);
+    const result = await updateSupplierContact(data);
+    setSupplierState(result);
+    setIsUpdatingSupplier(false);
+
+    if (result.supplier) {
+      const updatedSupplier = result.supplier;
+      setAvailableSuppliers((current) =>
+        current
+          .map((supplier) =>
+            supplier.id === updatedSupplier.id ? updatedSupplier : supplier,
+          )
+          .sort((left, right) => left.name.localeCompare(right.name, "el")),
+      );
+      selectSupplier(updatedSupplier);
+    }
+  }
+
+  function handleMonthChange(monthId: string) {
+    setSelectedMonthId(monthId);
+    const period = monthlyPeriods.find((item) => item.id === monthId);
+
+    if (!period) return;
+
+    const bounds = getMonthBounds(period.month_key);
+    setInvoiceDate((currentDate) =>
+      currentDate >= bounds.min && currentDate <= bounds.max
+        ? currentDate
+        : bounds.min,
+    );
+  }
+
+  function handleNetAmountChange(value: string) {
+    setNetAmount(value);
+
+    if (!isVatManuallyOverridden) {
+      setVatAmount(calculateVatFromNet(value));
+    }
+  }
+
+  function handleVatAmountChange(value: string) {
+    setVatAmount(value);
+    setIsVatManuallyOverridden(true);
+  }
+
+  function resetAutomaticVat() {
+    setIsVatManuallyOverridden(false);
+    setVatAmount(calculateVatFromNet(netAmount));
   }
 
   return (
@@ -136,7 +274,8 @@ export function MaterialForm({
           Μήνας
           <select
             name="monthId"
-            defaultValue={material?.month_id ?? defaultMonthId}
+            value={selectedMonthId}
+            onChange={(event) => handleMonthChange(event.target.value)}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           >
@@ -153,7 +292,10 @@ export function MaterialForm({
           <input
             name="invoiceDate"
             type="date"
-            defaultValue={material?.invoice_date ?? ""}
+            value={invoiceDate}
+            onChange={(event) => setInvoiceDate(event.target.value)}
+            min={selectedMonthBounds?.min}
+            max={selectedMonthBounds?.max}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           />
@@ -247,27 +389,46 @@ export function MaterialForm({
             Διεύθυνση
             <input
               value={supplierAddress ?? ""}
-              readOnly
-              className="rounded-lg border border-slate-200 bg-white/70 px-3 py-2 text-slate-600"
+              onChange={(event) => setSupplierAddress(event.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
             Τηλέφωνο
             <input
               value={supplierPhone ?? ""}
-              readOnly
-              className="rounded-lg border border-slate-200 bg-white/70 px-3 py-2 text-slate-600"
+              onChange={(event) => setSupplierPhone(event.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
             Email
             <input
               value={supplierEmail ?? ""}
-              readOnly
-              className="rounded-lg border border-slate-200 bg-white/70 px-3 py-2 text-slate-600"
+              onChange={(event) => setSupplierEmail(event.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
             />
           </label>
         </div>
+
+        {supplierDetailsChanged && canCreateSuppliers ? (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p>
+              Έχετε αλλάξει στοιχεία επικοινωνίας του επιλεγμένου προμηθευτή.
+              Η αλλαγή δεν αποθηκεύεται αυτόματα στο μητρώο προμηθευτών.
+            </p>
+            <button
+              type="button"
+              disabled={isUpdatingSupplier}
+              onClick={() => void handleUpdateSupplierContact()}
+              className="mt-3 rounded-lg bg-blue-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {isUpdatingSupplier
+                ? "Ενημέρωση..."
+                : "Ενημέρωση στοιχείων προμηθευτή"}
+            </button>
+          </div>
+        ) : null}
 
         {showNewSupplierForm ? (
           <div className="mt-5 rounded-xl border border-blue-100 bg-white p-4">
@@ -286,7 +447,13 @@ export function MaterialForm({
               <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
                 Επωνυμία Προμηθευτή *
                 <input
-                  name="newSupplierName"
+                  value={newSupplierFields.name}
+                  onChange={(event) =>
+                    setNewSupplierFields((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
                   className="rounded-lg border border-slate-300 px-3 py-2"
                 />
                 {supplierState.fieldErrors?.name ? (
@@ -298,7 +465,13 @@ export function MaterialForm({
               <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
                 ΑΦΜ *
                 <input
-                  name="newSupplierTaxId"
+                  value={newSupplierFields.taxId}
+                  onChange={(event) =>
+                    setNewSupplierFields((current) => ({
+                      ...current,
+                      taxId: event.target.value,
+                    }))
+                  }
                   className="rounded-lg border border-slate-300 px-3 py-2"
                 />
                 {supplierState.fieldErrors?.taxId ? (
@@ -310,28 +483,52 @@ export function MaterialForm({
               <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
                 Διεύθυνση
                 <input
-                  name="newSupplierAddress"
+                  value={newSupplierFields.address}
+                  onChange={(event) =>
+                    setNewSupplierFields((current) => ({
+                      ...current,
+                      address: event.target.value,
+                    }))
+                  }
                   className="rounded-lg border border-slate-300 px-3 py-2"
                 />
               </label>
               <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
                 Τηλέφωνο
                 <input
-                  name="newSupplierPhone"
+                  value={newSupplierFields.phone}
+                  onChange={(event) =>
+                    setNewSupplierFields((current) => ({
+                      ...current,
+                      phone: event.target.value,
+                    }))
+                  }
                   className="rounded-lg border border-slate-300 px-3 py-2"
                 />
               </label>
               <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
                 Email
                 <input
-                  name="newSupplierEmail"
+                  value={newSupplierFields.email}
+                  onChange={(event) =>
+                    setNewSupplierFields((current) => ({
+                      ...current,
+                      email: event.target.value,
+                    }))
+                  }
                   className="rounded-lg border border-slate-300 px-3 py-2"
                 />
               </label>
               <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 md:col-span-2">
                 Σημειώσεις
                 <textarea
-                  name="newSupplierNotes"
+                  value={newSupplierFields.notes}
+                  onChange={(event) =>
+                    setNewSupplierFields((current) => ({
+                      ...current,
+                      notes: event.target.value,
+                    }))
+                  }
                   rows={2}
                   className="rounded-lg border border-slate-300 px-3 py-2"
                 />
@@ -341,50 +538,14 @@ export function MaterialForm({
               <button
                 type="button"
                 disabled={isSavingSupplier}
-                onClick={(event) => {
-                  const section = event.currentTarget.closest("div");
-                  const root = section?.parentElement;
+                onClick={() => {
                   const data = new FormData();
-                  data.set(
-                    "name",
-                    (
-                      root?.querySelector<HTMLInputElement>(
-                        'input[name="newSupplierName"]',
-                      )?.value ?? ""
-                    ).trim(),
-                  );
-                  data.set(
-                    "taxId",
-                    (
-                      root?.querySelector<HTMLInputElement>(
-                        'input[name="newSupplierTaxId"]',
-                      )?.value ?? ""
-                    ).trim(),
-                  );
-                  data.set(
-                    "address",
-                    root?.querySelector<HTMLInputElement>(
-                      'input[name="newSupplierAddress"]',
-                    )?.value ?? "",
-                  );
-                  data.set(
-                    "phone",
-                    root?.querySelector<HTMLInputElement>(
-                      'input[name="newSupplierPhone"]',
-                    )?.value ?? "",
-                  );
-                  data.set(
-                    "email",
-                    root?.querySelector<HTMLInputElement>(
-                      'input[name="newSupplierEmail"]',
-                    )?.value ?? "",
-                  );
-                  data.set(
-                    "notes",
-                    root?.querySelector<HTMLTextAreaElement>(
-                      'textarea[name="newSupplierNotes"]',
-                    )?.value ?? "",
-                  );
+                  data.set("name", newSupplierFields.name.trim());
+                  data.set("taxId", newSupplierFields.taxId.trim());
+                  data.set("address", newSupplierFields.address);
+                  data.set("phone", newSupplierFields.phone);
+                  data.set("email", newSupplierFields.email);
+                  data.set("notes", newSupplierFields.notes);
                   void handleSaveSupplier(data);
                 }}
                 className="rounded-lg bg-blue-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
@@ -425,22 +586,40 @@ export function MaterialForm({
             type="number"
             min="0"
             step="0.01"
-            defaultValue={decimalValue(material?.net_amount)}
+            value={netAmount}
+            onChange={(event) => handleNetAmountChange(event.target.value)}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-          ΦΠΑ
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>ΦΠΑ</span>
+            <span className="text-xs font-medium text-blue-700">
+              {isVatManuallyOverridden
+                ? "Χειροκίνητη τιμή ΦΠΑ"
+                : "Αυτόματος υπολογισμός ΦΠΑ 24%"}
+            </span>
+          </span>
           <input
             name="vatAmount"
             type="number"
             min="0"
             step="0.01"
-            defaultValue={decimalValue(material?.vat_amount)}
+            value={vatAmount}
+            onChange={(event) => handleVatAmountChange(event.target.value)}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           />
+          {isVatManuallyOverridden ? (
+            <button
+              type="button"
+              onClick={resetAutomaticVat}
+              className="self-start text-xs font-semibold text-blue-800 underline-offset-4 hover:underline"
+            >
+              Επαναφορά αυτόματου ΦΠΑ
+            </button>
+          ) : null}
         </label>
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Σύνολο
@@ -449,9 +628,10 @@ export function MaterialForm({
             type="number"
             min="0"
             step="0.01"
-            defaultValue={decimalValue(material?.total_amount)}
+            value={totalAmount}
+            readOnly
             required
-            className="rounded-lg border border-slate-300 px-3 py-2"
+            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700"
           />
         </label>
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">

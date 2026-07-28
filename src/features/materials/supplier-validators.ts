@@ -16,4 +16,12 @@ export const supplierInputSchema = z.object({
   notes: optionalText,
 });
 
+export const supplierContactInputSchema = z.object({
+  id: z.string().uuid("Ο προμηθευτής δεν είναι έγκυρος."),
+  address: optionalText,
+  phone: optionalText,
+  email: optionalText,
+});
+
 export type SupplierInput = z.infer<typeof supplierInputSchema>;
+export type SupplierContactInput = z.infer<typeof supplierContactInputSchema>;
