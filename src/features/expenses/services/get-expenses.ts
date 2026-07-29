@@ -42,13 +42,37 @@ export async function getExpenses(
 
   const expenses = (data ?? []) as Expense[];
   const monthIds = [...new Set(expenses.map((expense) => expense.month_id))];
-  const monthsResult = monthIds.length
-    ? await supabase.from("monthly_periods").select("id, month_key").in("id", monthIds)
-    : { data: [], error: null };
+  const officeIds = [
+    ...new Set(
+      expenses
+        .map((expense) => expense.office_id)
+        .filter((officeId): officeId is string => Boolean(officeId)),
+    ),
+  ];
+  const vehicleIds = [
+    ...new Set(
+      expenses
+        .map((expense) => expense.vehicle_id)
+        .filter((vehicleId): vehicleId is string => Boolean(vehicleId)),
+    ),
+  ];
+  const [monthsResult, officesResult, vehiclesResult] = await Promise.all([
+    monthIds.length
+      ? supabase.from("monthly_periods").select("id, month_key").in("id", monthIds)
+      : Promise.resolve({ data: [], error: null }),
+    officeIds.length
+      ? supabase.from("company_offices").select("id, name").in("id", officeIds)
+      : Promise.resolve({ data: [], error: null }),
+    vehicleIds.length
+      ? supabase.from("company_vehicles").select("id, name").in("id", vehicleIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
-  if (monthsResult.error) {
+  if (monthsResult.error || officesResult.error || vehiclesResult.error) {
     console.error("[expenses:getExpenses:relations] Supabase error", {
-      monthError: monthsResult.error.message,
+      monthError: monthsResult.error?.message,
+      officeError: officesResult.error?.message,
+      vehicleError: vehiclesResult.error?.message,
     });
     throw new Error("Unable to load expense relations.");
   }
@@ -56,9 +80,19 @@ export async function getExpenses(
   const monthMap = new Map(
     (monthsResult.data ?? []).map((month) => [month.id, month.month_key]),
   );
+  const officeMap = new Map(
+    (officesResult.data ?? []).map((office) => [office.id, office.name]),
+  );
+  const vehicleMap = new Map(
+    (vehiclesResult.data ?? []).map((vehicle) => [vehicle.id, vehicle.name]),
+  );
 
   return expenses.map((expense) => ({
     ...expense,
     monthKey: monthMap.get(expense.month_id) ?? "-",
+    officeName: expense.office_id ? officeMap.get(expense.office_id) ?? null : null,
+    vehicleName: expense.vehicle_id
+      ? vehicleMap.get(expense.vehicle_id) ?? null
+      : null,
   }));
 }

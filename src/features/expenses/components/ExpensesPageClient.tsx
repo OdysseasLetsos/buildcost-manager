@@ -12,6 +12,8 @@ import type { ExpenseScope } from "../constants";
 import { expenseScopeLabels } from "../constants";
 import { getExpensesSummary } from "../services/get-expenses-summary";
 import type {
+  CompanyOffice,
+  CompanyVehicle,
   ExpenseAllocationPreview as ExpenseAllocationPreviewData,
   ExpenseWithRelations,
 } from "../types";
@@ -87,6 +89,8 @@ function ExpensesSectionTabs({
 
 export function ExpensesPageClient({
   expenses,
+  offices,
+  vehicles,
   materials,
   suppliers,
   projects,
@@ -100,6 +104,8 @@ export function ExpensesPageClient({
   initialSection,
 }: Readonly<{
   expenses: ExpenseWithRelations[];
+  offices: CompanyOffice[];
+  vehicles: CompanyVehicle[];
   materials: MaterialWithRelations[];
   suppliers: Supplier[];
   projects: Project[];
@@ -261,6 +267,8 @@ export function ExpensesPageClient({
                 action={editingExpense ? updateExpense : createExpense}
                 expense={editingExpense ?? undefined}
                 monthlyPeriods={openMonthlyPeriods}
+                offices={offices}
+                vehicles={vehicles}
                 defaultMonthId={effectiveMonthId}
                 defaultScope={activeScope}
                 submitLabel={

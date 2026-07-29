@@ -4,6 +4,8 @@ import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany } from "@/src/core/tenants";
 import { ExpensesPageClient } from "@/src/features/expenses/components/ExpensesPageClient";
 import { getExpenseAllocationPreview } from "@/src/features/expenses/services/get-expense-allocation-preview";
+import { getCompanyOffices } from "@/src/features/expenses/services/get-company-offices";
+import { getCompanyVehicles } from "@/src/features/expenses/services/get-company-vehicles";
 import { getExpenses } from "@/src/features/expenses/services/get-expenses";
 import { getMaterials } from "@/src/features/materials/services/get-materials";
 import { getSuppliers } from "@/src/features/materials/services/get-suppliers";
@@ -75,8 +77,18 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const defaultMonthId = latestOpenMonth?.id ?? monthlyPeriods[0]?.id ?? "";
   const shouldLoadExpenses = canAccessExpenses && expensesFeatureAvailable;
   const shouldLoadMaterials = canAccessMaterials && materialsFeatureAvailable;
-  const [expenses, allocationEntries, materials, suppliers, projects] = await Promise.all([
+  const [
+    expenses,
+    offices,
+    vehicles,
+    allocationEntries,
+    materials,
+    suppliers,
+    projects,
+  ] = await Promise.all([
     shouldLoadExpenses ? getExpenses(companyId) : Promise.resolve([]),
+    shouldLoadExpenses ? getCompanyOffices(companyId) : Promise.resolve([]),
+    shouldLoadExpenses ? getCompanyVehicles(companyId) : Promise.resolve([]),
     shouldLoadExpenses
       ? Promise.all(
           monthlyPeriods.map(
@@ -99,6 +111,8 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   return (
     <ExpensesPageClient
       expenses={expenses}
+      offices={offices}
+      vehicles={vehicles}
       materials={materials}
       suppliers={suppliers}
       projects={projects}
