@@ -138,6 +138,20 @@ export function MaterialForm({
     );
   });
   const totalAmount = formatAmount(parseAmount(netAmount) + parseAmount(vatAmount));
+  const [paidAmount, setPaidAmount] = useState(
+    decimalValue(material?.paid_amount ?? (material?.payment_status === "paid" ? material.total_amount : 0)),
+  );
+  const [paymentStatus, setPaymentStatus] = useState(
+    material?.payment_status ?? "pending",
+  );
+  const paidAmountNumber = parseAmount(paidAmount);
+  const totalAmountNumber = parseAmount(totalAmount);
+  const remainingAmount = Math.max(totalAmountNumber - paidAmountNumber, 0);
+  const pendingPercentage =
+    totalAmountNumber > 0 ? (remainingAmount / totalAmountNumber) * 100 : 0;
+  const paidAmountExceedsTotal = paidAmountNumber - totalAmountNumber > 0.01;
+  const hasSuppliers = availableSuppliers.length > 0;
+  const canSubmitInvoice = hasSuppliers && Boolean(selectedSupplierId) && !paidAmountExceedsTotal;
   const selectedSupplier = useMemo(
     () =>
       availableSuppliers.find((supplier) => supplier.id === selectedSupplierId) ??
@@ -234,20 +248,66 @@ export function MaterialForm({
 
   function handleNetAmountChange(value: string) {
     setNetAmount(value);
+    const nextVatAmount = isVatManuallyOverridden
+      ? vatAmount
+      : calculateVatFromNet(value);
 
     if (!isVatManuallyOverridden) {
-      setVatAmount(calculateVatFromNet(value));
+      setVatAmount(nextVatAmount);
+    }
+
+    if (paymentStatus === "paid") {
+      setPaidAmount(formatAmount(parseAmount(value) + parseAmount(nextVatAmount)));
     }
   }
 
   function handleVatAmountChange(value: string) {
     setVatAmount(value);
     setIsVatManuallyOverridden(true);
+
+    if (paymentStatus === "paid") {
+      setPaidAmount(formatAmount(parseAmount(netAmount) + parseAmount(value)));
+    }
   }
 
   function resetAutomaticVat() {
+    const automaticVat = calculateVatFromNet(netAmount);
     setIsVatManuallyOverridden(false);
-    setVatAmount(calculateVatFromNet(netAmount));
+    setVatAmount(automaticVat);
+
+    if (paymentStatus === "paid") {
+      setPaidAmount(formatAmount(parseAmount(netAmount) + parseAmount(automaticVat)));
+    }
+  }
+
+  function derivePaymentStatus(value: string) {
+    const paid = parseAmount(value);
+    const total = parseAmount(totalAmount);
+
+    if (paid <= 0) return "pending";
+    if (Math.abs(paid - total) <= 0.01) return "paid";
+    return "partial";
+  }
+
+  function handlePaidAmountChange(value: string) {
+    setPaidAmount(value);
+    setPaymentStatus(derivePaymentStatus(value));
+  }
+
+  function handlePaymentStatusChange(value: string) {
+    if (value === "paid") {
+      setPaidAmount(totalAmount);
+      setPaymentStatus("paid");
+      return;
+    }
+
+    if (value === "pending") {
+      setPaidAmount("0");
+      setPaymentStatus("pending");
+      return;
+    }
+
+    setPaymentStatus("partial");
   }
 
   return (
@@ -366,23 +426,17 @@ export function MaterialForm({
             Επωνυμία Προμηθευτή
             <input
               value={supplierName}
-              onChange={(event) => {
-                setSelectedSupplierId("");
-                setSupplierName(event.target.value);
-              }}
+              readOnly
               required
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
             ΑΦΜ
             <input
               value={supplierVat}
-              onChange={(event) => {
-                setSelectedSupplierId("");
-                setSupplierVat(event.target.value);
-              }}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              readOnly
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
@@ -410,6 +464,16 @@ export function MaterialForm({
             />
           </label>
         </div>
+
+        {!hasSuppliers ? (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+            Πρώτα πρέπει να προσθέσετε προμηθευτή για να δημιουργήσετε τιμολόγιο υλικών.
+          </p>
+        ) : !selectedSupplierId ? (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+            Πρέπει να επιλέξετε προμηθευτή πριν δημιουργήσετε τιμολόγιο υλικών.
+          </p>
+        ) : null}
 
         {supplierDetailsChanged && canCreateSuppliers ? (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -638,14 +702,57 @@ export function MaterialForm({
           Κατάσταση Πληρωμής
           <select
             name="paymentStatus"
-            defaultValue={material?.payment_status ?? "pending"}
+            value={paymentStatus}
+            onChange={(event) => handlePaymentStatusChange(event.target.value)}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           >
             <option value="pending">Εκκρεμεί</option>
+            <option value="partial">Μερικώς πληρωμένο</option>
             <option value="paid">Πληρωμένο</option>
           </select>
         </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          Πληρωμένο ποσό
+          <input
+            name="paidAmount"
+            type="number"
+            min="0"
+            max={totalAmount}
+            step="0.01"
+            value={paidAmount}
+            onChange={(event) => handlePaidAmountChange(event.target.value)}
+            required
+            className={`rounded-lg border px-3 py-2 ${
+              paidAmountExceedsTotal
+                ? "border-red-300 bg-red-50"
+                : "border-slate-300"
+            }`}
+          />
+          {paidAmountExceedsTotal ? (
+            <span className="text-xs font-medium text-red-700">
+              Το πληρωμένο ποσό δεν μπορεί να είναι μεγαλύτερο από το σύνολο του τιμολογίου.
+            </span>
+          ) : null}
+        </label>
+        <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm md:col-span-2 md:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              Υπόλοιπο
+            </p>
+            <p className="mt-1 text-base font-semibold text-slate-950">
+              {formatAmount(remainingAmount)} €
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              Ποσοστό εκκρεμότητας
+            </p>
+            <p className="mt-1 text-base font-semibold text-slate-950">
+              {formatAmount(pendingPercentage)}%
+            </p>
+          </div>
+        </div>
       </div>
       <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
         Περιγραφή
@@ -667,7 +774,7 @@ export function MaterialForm({
       </label>
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isPending || !canSubmitInvoice}
         className="justify-self-start rounded-lg bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
       >
         {isPending ? "Αποθήκευση..." : submitLabel}

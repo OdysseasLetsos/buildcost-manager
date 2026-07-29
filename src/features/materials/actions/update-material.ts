@@ -29,6 +29,12 @@ function calculateMaterialTotal(netAmount: number, vatAmount: number): number {
   return Math.round((netAmount + vatAmount) * 100) / 100;
 }
 
+function normalizePaymentStatus(paidAmount: number, totalAmount: number) {
+  if (paidAmount <= 0) return "pending";
+  if (Math.abs(paidAmount - totalAmount) <= 0.01) return "paid";
+  return "partial";
+}
+
 export async function updateMaterial(
   _previousState: MaterialActionState,
   formData: FormData,
@@ -56,6 +62,7 @@ export async function updateMaterial(
     netAmount: formData.get("netAmount"),
     vatAmount: formData.get("vatAmount"),
     totalAmount: formData.get("totalAmount"),
+    paidAmount: formData.get("paidAmount"),
     paymentStatus: formData.get("paymentStatus"),
     notes: formData.get("notes"),
   });
@@ -86,6 +93,16 @@ export async function updateMaterial(
   if (!material) return { ok: false, message: "Το τιμολόγιο υλικών δεν βρέθηκε." };
 
   try {
+    if (input.paidAmount - input.totalAmount > 0.01) {
+      throw new Error(
+        "Το πληρωμένο ποσό δεν μπορεί να είναι μεγαλύτερο από το σύνολο του τιμολογίου.",
+      );
+    }
+
+    input.paymentStatus = normalizePaymentStatus(
+      input.paidAmount,
+      input.totalAmount,
+    );
     input = await resolveMaterialSupplier(companyId, input);
     await requireOpenMonth(material.month_id);
     await validateMaterialRelations(companyId, input);
@@ -119,6 +136,7 @@ export async function updateMaterial(
       net_amount: input.netAmount,
       vat_amount: input.vatAmount,
       total_amount: input.totalAmount,
+      paid_amount: input.paidAmount,
       payment_status: input.paymentStatus,
       notes: input.notes,
     })

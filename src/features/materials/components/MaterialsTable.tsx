@@ -44,6 +44,10 @@ function DetailItem({ label, value }: Readonly<{ label: string; value: string | 
   );
 }
 
+function amountValue(value: number): string {
+  return currencyFormatter.format(value);
+}
+
 export function MaterialsTable({
   materials,
   canManage,
@@ -149,6 +153,16 @@ export function MaterialsTable({
                           <DetailItem label="Περιγραφή" value={material.description} />
                           <DetailItem label="Σημειώσεις" value={material.notes} />
                           <DetailItem label="ΑΦΜ Προμηθευτή" value={material.supplier_vat} />
+                          <DetailItem
+                            label="Πληρωμένο ποσό"
+                            value={amountValue(material.paid_amount)}
+                          />
+                          <DetailItem
+                            label="Υπόλοιπο"
+                            value={amountValue(
+                              Math.max(material.total_amount - material.paid_amount, 0),
+                            )}
+                          />
                           <DetailItem label="Δημιουργήθηκε" value={material.created_at} />
                           <DetailItem label="Ενημερώθηκε" value={material.updated_at} />
                         </dl>

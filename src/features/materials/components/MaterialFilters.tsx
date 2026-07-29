@@ -59,6 +59,7 @@ export function MaterialFilters({
         <select value={paymentStatus} onChange={(event) => onStatusChange(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2">
           <option value="">Όλες</option>
           <option value="pending">Εκκρεμεί</option>
+          <option value="partial">Μερικώς πληρωμένο</option>
           <option value="paid">Πληρωμένο</option>
         </select>
       </label>

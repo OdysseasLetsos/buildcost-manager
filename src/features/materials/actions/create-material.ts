@@ -27,6 +27,12 @@ function calculateMaterialTotal(netAmount: number, vatAmount: number): number {
   return Math.round((netAmount + vatAmount) * 100) / 100;
 }
 
+function normalizePaymentStatus(paidAmount: number, totalAmount: number) {
+  if (paidAmount <= 0) return "pending";
+  if (Math.abs(paidAmount - totalAmount) <= 0.01) return "paid";
+  return "partial";
+}
+
 export async function createMaterial(
   _previousState: MaterialActionState,
   formData: FormData,
@@ -53,6 +59,7 @@ export async function createMaterial(
     netAmount: formData.get("netAmount"),
     vatAmount: formData.get("vatAmount"),
     totalAmount: formData.get("totalAmount"),
+    paidAmount: formData.get("paidAmount"),
     paymentStatus: formData.get("paymentStatus"),
     notes: formData.get("notes"),
   });
@@ -74,6 +81,16 @@ export async function createMaterial(
   };
 
   try {
+    if (input.paidAmount - input.totalAmount > 0.01) {
+      throw new Error(
+        "Το πληρωμένο ποσό δεν μπορεί να είναι μεγαλύτερο από το σύνολο του τιμολογίου.",
+      );
+    }
+
+    input.paymentStatus = normalizePaymentStatus(
+      input.paidAmount,
+      input.totalAmount,
+    );
     input = await resolveMaterialSupplier(companyId, input);
     await validateMaterialRelations(companyId, input);
     await checkDuplicateMaterialInvoice({
@@ -106,6 +123,7 @@ export async function createMaterial(
       net_amount: input.netAmount,
       vat_amount: input.vatAmount,
       total_amount: input.totalAmount,
+      paid_amount: input.paidAmount,
       payment_status: input.paymentStatus,
       notes: input.notes,
       created_by: user.id,

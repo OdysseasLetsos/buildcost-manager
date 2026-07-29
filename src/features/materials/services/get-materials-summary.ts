@@ -21,12 +21,16 @@ export function getMaterialsSummary(
       0,
     ),
     invoiceCount: materials.length,
-    paidAmount: materials
-      .filter((material) => material.payment_status === "paid")
-      .reduce((sum, material) => sum + Number(material.total_amount), 0),
-    pendingAmount: materials
-      .filter((material) => material.payment_status === "pending")
-      .reduce((sum, material) => sum + Number(material.total_amount), 0),
+    paidAmount: materials.reduce(
+      (sum, material) => sum + Number(material.paid_amount),
+      0,
+    ),
+    pendingAmount: materials.reduce(
+      (sum, material) =>
+        sum +
+        Math.max(Number(material.total_amount) - Number(material.paid_amount), 0),
+      0,
+    ),
     topSupplier,
   };
 }

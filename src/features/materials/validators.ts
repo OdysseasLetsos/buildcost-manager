@@ -5,12 +5,6 @@ const optionalText = z
   .trim()
   .transform((value) => (value.length > 0 ? value : null));
 
-const optionalUuid = z
-  .string()
-  .trim()
-  .transform((value) => (value.length > 0 ? value : null))
-  .pipe(z.string().uuid("Ο προμηθευτής δεν είναι έγκυρος.").nullable());
-
 const requiredText = (message: string) => z.string().trim().min(1, message);
 
 const nonNegativeAmount = (fieldLabel: string) =>
@@ -34,7 +28,12 @@ export const materialInputSchema = z
       .string()
       .trim()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Η ημερομηνία τιμολογίου δεν είναι έγκυρη."),
-    supplierId: optionalUuid.optional(),
+    supplierId: z
+      .string()
+      .trim()
+      .uuid(
+        "Πρέπει να επιλέξετε προμηθευτή πριν δημιουργήσετε τιμολόγιο υλικών.",
+      ),
     supplierName: requiredText("Συμπληρώστε προμηθευτή."),
     supplierVat: optionalText,
     invoiceNumber: requiredText("Συμπληρώστε αριθμό τιμολογίου."),
@@ -42,7 +41,8 @@ export const materialInputSchema = z
     netAmount: nonNegativeAmount("Η καθαρή αξία"),
     vatAmount: nonNegativeAmount("Το ΦΠΑ"),
     totalAmount: nonNegativeAmount("Το σύνολο"),
-    paymentStatus: z.enum(["pending", "paid"], {
+    paidAmount: nonNegativeAmount("Το πληρωμένο ποσό"),
+    paymentStatus: z.enum(["pending", "partial", "paid"], {
       message: "Επιλέξτε κατάσταση πληρωμής.",
     }),
     notes: optionalText,
