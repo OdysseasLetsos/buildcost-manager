@@ -11,6 +11,7 @@ import {
   emptyCostBreakdown,
 } from "./calculate-cost-breakdown";
 import { getProjectSummary } from "./get-project-summary";
+import { mergeSupplierOutstandingBalances } from "./get-supplier-outstanding-balances";
 
 function getSummaryStatus({
   profit,
@@ -144,5 +145,8 @@ export async function getAllMonthsProjectSummary(
     projects,
     totals: totalsForProjects(projects),
     warnings: monthlyReports.flatMap((report) => report.warnings),
+    supplierOutstandingBalances: mergeSupplierOutstandingBalances(
+      monthlyReports.map((report) => report.supplierOutstandingBalances),
+    ),
   };
 }

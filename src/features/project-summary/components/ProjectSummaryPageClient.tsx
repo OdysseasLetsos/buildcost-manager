@@ -17,6 +17,7 @@ import { ProjectCostChart } from "./ProjectCostChart";
 import { ProjectQuoteFinancialOverview } from "./ProjectQuoteFinancialOverview";
 import { ProjectSummaryFilters } from "./ProjectSummaryFilters";
 import { ProjectSummaryKpiCards } from "./ProjectSummaryKpiCards";
+import { SupplierOutstandingBalancesSection } from "./SupplierOutstandingBalancesSection";
 
 function totalsForProjects(projects: ProjectSummaryReport["projects"]): ProjectSummaryTotals {
   const totals = projects.reduce<ProjectSummaryTotals>(
@@ -51,6 +52,10 @@ function emptyReport(monthId: string): ProjectSummaryReport {
     projects: [],
     totals: totalsForProjects([]),
     warnings: [],
+    supplierOutstandingBalances: {
+      totalOutstandingAmount: 0,
+      suppliers: [],
+    },
   };
 }
 
@@ -151,6 +156,10 @@ export function ProjectSummaryPageClient({
       </div>
 
       <ProjectComparisonTable projects={visibleProjects} />
+      <SupplierOutstandingBalancesSection
+        balances={report.supplierOutstandingBalances}
+        projectId={projectId}
+      />
     </div>
   );
 }
