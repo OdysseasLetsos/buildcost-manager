@@ -20,6 +20,7 @@ export const generalExpenseCategories = [
 export const officeExpenseSubtypes = [
   { value: "rent", label: "Ενοίκιο" },
   { value: "office_utilities", label: "Έξοδα γραφείου" },
+  { value: "other", label: "Άλλο" },
 ] as const;
 
 export const transportExpenseSubtypes = [
