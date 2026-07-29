@@ -21,6 +21,10 @@ import {
   calculateTotalCost,
   emptyCostBreakdown,
 } from "./calculate-cost-breakdown";
+import {
+  emptySupplierOutstandingBalances,
+  getSupplierOutstandingBalancesForProjectSummary,
+} from "./get-supplier-outstanding-balances";
 
 type ProjectRow = {
   id: string;
@@ -78,6 +82,7 @@ export async function getProjectSummary(
         costs: emptyCostBreakdown(),
       },
       warnings: [],
+      supplierOutstandingBalances: emptySupplierOutstandingBalances(),
     };
   }
 
@@ -93,6 +98,7 @@ export async function getProjectSummary(
     expensesResult,
     revenuesResult,
     quotesResult,
+    supplierOutstandingBalances,
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -138,6 +144,7 @@ export async function getProjectSummary(
       .from("project_quotes")
       .select("project_id, status, amount, vat_amount, total_amount")
       .eq("company_id", companyId),
+    getSupplierOutstandingBalancesForProjectSummary({ companyId, monthId }),
   ]);
 
   const firstError =
@@ -334,5 +341,6 @@ export async function getProjectSummary(
       ...ikaAllocationResult.warnings,
       ...expenseResult.warnings,
     ],
+    supplierOutstandingBalances,
   };
 }

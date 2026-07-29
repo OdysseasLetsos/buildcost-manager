@@ -96,9 +96,37 @@ export type ProjectSummaryTotals = {
   costs: ProjectSummaryCostBreakdown;
 };
 
+export type SupplierOutstandingInvoice = {
+  invoiceId: string;
+  invoiceNumber: string;
+  projectId: string;
+  projectName: string;
+  invoiceDate: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  pendingPercentage: number;
+  paymentStatus: string;
+};
+
+export type SupplierOutstandingBalance = {
+  supplierId: string | null;
+  supplierName: string;
+  supplierTaxId: string | null;
+  totalOutstandingAmount: number;
+  pendingInvoiceCount: number;
+  invoices: SupplierOutstandingInvoice[];
+};
+
+export type SupplierOutstandingBalancesReport = {
+  totalOutstandingAmount: number;
+  suppliers: SupplierOutstandingBalance[];
+};
+
 export type ProjectSummaryReport = {
   monthId: string;
   projects: ProjectSummaryRow[];
   totals: ProjectSummaryTotals;
   warnings: ProjectSummaryWarning[];
+  supplierOutstandingBalances: SupplierOutstandingBalancesReport;
 };
