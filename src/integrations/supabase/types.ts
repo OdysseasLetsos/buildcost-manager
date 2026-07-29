@@ -540,6 +540,7 @@ export type Database = {
           net_amount: number;
           vat_amount: number;
           total_amount: number;
+          paid_amount: number;
           payment_status: string;
           notes: string | null;
           created_by: string | null;
@@ -560,6 +561,7 @@ export type Database = {
           net_amount?: number;
           vat_amount?: number;
           total_amount?: number;
+          paid_amount?: number;
           payment_status?: string;
           notes?: string | null;
           created_by?: string | null;
@@ -578,6 +580,7 @@ export type Database = {
           net_amount?: number;
           vat_amount?: number;
           total_amount?: number;
+          paid_amount?: number;
           payment_status?: string;
           notes?: string | null;
           created_by?: string | null;
