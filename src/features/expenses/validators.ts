@@ -30,6 +30,17 @@ const positiveAmount = z
     message: "Το ποσό πρέπει να είναι μεγαλύτερο από 0.",
   });
 
+const optionalBatchAmount = z
+  .string()
+  .trim()
+  .transform((value) => (value.length > 0 ? Number(value.replace(",", ".")) : 0))
+  .refine((value) => Number.isFinite(value), {
+    message: "Το ποσό πρέπει να είναι αριθμός.",
+  })
+  .refine((value) => value >= 0, {
+    message: "Το ποσό δεν μπορεί να είναι αρνητικό.",
+  });
+
 export const expenseInputSchema = z.object({
   id: z.string().uuid("Το έξοδο δεν είναι έγκυρο.").optional(),
   monthId: z.string().uuid("Επιλέξτε μήνα."),
@@ -109,6 +120,31 @@ export const companyVehicleInputSchema = z.object({
   notes: optionalText,
 });
 
+export const officeExpenseBatchInputSchema = z.object({
+  monthId: z.string().uuid("Επιλέξτε μήνα."),
+  officeId: z.string().uuid("Επιλέξτε γραφείο."),
+  expenseDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Η ημερομηνία εξόδου δεν είναι έγκυρη."),
+  rentAmount: optionalBatchAmount,
+  officeUtilitiesAmount: optionalBatchAmount,
+  otherAmount: optionalBatchAmount,
+  notes: optionalText,
+});
+
+export const vehicleExpenseBatchInputSchema = z.object({
+  monthId: z.string().uuid("Επιλέξτε μήνα."),
+  vehicleId: z.string().uuid("Επιλέξτε όχημα."),
+  expenseDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Η ημερομηνία εξόδου δεν είναι έγκυρη."),
+  maintenanceAmount: optionalBatchAmount,
+  otherAmount: optionalBatchAmount,
+  notes: optionalText,
+});
+
 export const expenseIdSchema = z
   .string()
   .uuid("Το έξοδο δεν είναι έγκυρο.");
@@ -116,3 +152,5 @@ export const expenseIdSchema = z
 export type ExpenseInput = z.infer<typeof expenseInputSchema>;
 export type CompanyOfficeInput = z.infer<typeof companyOfficeInputSchema>;
 export type CompanyVehicleInput = z.infer<typeof companyVehicleInputSchema>;
+export type OfficeExpenseBatchInput = z.infer<typeof officeExpenseBatchInputSchema>;
+export type VehicleExpenseBatchInput = z.infer<typeof vehicleExpenseBatchInputSchema>;

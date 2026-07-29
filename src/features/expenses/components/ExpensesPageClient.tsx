@@ -22,6 +22,7 @@ import { ExpenseFilters } from "./ExpenseFilters";
 import { ExpenseForm } from "./ExpenseForm";
 import { ExpensesSummaryCards } from "./ExpensesSummaryCards";
 import { ExpensesTable } from "./ExpensesTable";
+import { GeneralExpenseResourceCards } from "./GeneralExpenseResourceCards";
 
 type ExpensesSection = "materials" | "general" | "fixed";
 
@@ -260,6 +261,20 @@ export function ExpensesPageClient({
               {expenseScopeLabels.general}
             </h3>
           </div>
+
+          <GeneralExpenseResourceCards
+            category={category}
+            scope={activeScope}
+            month={selectedMonth}
+            offices={offices}
+            vehicles={vehicles}
+            expenses={expenses}
+            canManage={canMutateExpenses}
+            onEditExpense={(expense) => {
+              setShowForm(false);
+              setEditingExpense(expense);
+            }}
+          />
 
           {(showForm || editingExpense) && canMutateExpenses ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
