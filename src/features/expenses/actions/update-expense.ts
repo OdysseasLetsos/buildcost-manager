@@ -43,6 +43,9 @@ export async function updateExpense(
     expenseDate: formData.get("expenseDate"),
     scope: formData.get("scope"),
     category: formData.get("category"),
+    expenseSubtype: formData.get("expenseSubtype"),
+    officeId: formData.get("officeId"),
+    vehicleId: formData.get("vehicleId"),
     description: formData.get("description"),
     amount: formData.get("amount"),
     allocationMethod: formData.get("allocationMethod"),
@@ -86,6 +89,9 @@ export async function updateExpense(
       expense_date: input.expenseDate,
       scope: input.scope,
       category: input.category,
+      expense_subtype: input.expenseSubtype,
+      office_id: input.category === "office" ? input.officeId : null,
+      vehicle_id: input.category === "transport" ? input.vehicleId : null,
       description: input.description,
       amount: input.amount,
       allocation_method: input.allocationMethod,
@@ -109,7 +115,12 @@ export async function updateExpense(
     action: "expense.updated",
     entityType: "expense",
     entityId: expenseId,
-    metadata: { amount: input.amount, scope: input.scope, category: input.category },
+    metadata: {
+      amount: input.amount,
+      scope: input.scope,
+      category: input.category,
+      expenseSubtype: input.expenseSubtype,
+    },
   });
 
   revalidatePath("/expenses");

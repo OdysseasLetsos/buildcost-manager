@@ -2,7 +2,7 @@
 
 import { Fragment, useActionState, useState } from "react";
 import { deleteExpense } from "../actions/delete-expense";
-import { expenseScopeLabels } from "../constants";
+import { expenseScopeLabels, expenseSubtypeLabels } from "../constants";
 import type { ExpenseWithRelations } from "../types";
 import { initialExpenseActionState } from "../types";
 import { AllocationMethodBadge } from "./AllocationMethodBadge";
@@ -137,6 +137,17 @@ export function ExpensesTable({
                       <td colSpan={7} className="bg-slate-50 px-4 py-4">
                         <dl className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
                           <DetailItem label="Μήνας" value={expense.monthKey} />
+                          <DetailItem
+                            label="Υποκατηγορία / Τύπος εξόδου"
+                            value={
+                              expense.expense_subtype
+                                ? expenseSubtypeLabels[expense.expense_subtype] ??
+                                  expense.expense_subtype
+                                : null
+                            }
+                          />
+                          <DetailItem label="Γραφείο" value={expense.officeName ?? null} />
+                          <DetailItem label="Όχημα" value={expense.vehicleName ?? null} />
                           <DetailItem label="Περιγραφή" value={expense.description} />
                           <DetailItem label="Σημειώσεις" value={expense.notes} />
                           <DetailItem label="Δημιουργήθηκε" value={expense.created_at} />

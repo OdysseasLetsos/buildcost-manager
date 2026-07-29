@@ -17,6 +17,25 @@ export const generalExpenseCategories = [
   { value: "other", label: "Άλλο" },
 ] as const;
 
+export const officeExpenseSubtypes = [
+  { value: "rent", label: "Ενοίκιο" },
+  { value: "office_utilities", label: "Έξοδα γραφείου" },
+] as const;
+
+export const transportExpenseSubtypes = [
+  { value: "maintenance", label: "Έξοδα συντήρησης" },
+  { value: "other", label: "Άλλο" },
+] as const;
+
+export const expenseSubtypeLabels: Record<string, string> = {
+  ...Object.fromEntries(
+    officeExpenseSubtypes.map((subtype) => [subtype.value, subtype.label]),
+  ),
+  ...Object.fromEntries(
+    transportExpenseSubtypes.map((subtype) => [subtype.value, subtype.label]),
+  ),
+};
+
 export const officeExpenseCategories = generalExpenseCategories;
 
 const legacyExpenseCategoryLabels: Record<string, string> = {
@@ -63,3 +82,6 @@ export const allocationStatusLabels = {
 export type ExpenseScope = (typeof expenseScopes)[number];
 export type ExpenseAllocationMethod = (typeof expenseAllocationMethods)[number];
 export type ExpenseAllocationStatus = (typeof expenseAllocationStatuses)[number];
+export type OfficeExpenseSubtype = (typeof officeExpenseSubtypes)[number]["value"];
+export type TransportExpenseSubtype =
+  (typeof transportExpenseSubtypes)[number]["value"];

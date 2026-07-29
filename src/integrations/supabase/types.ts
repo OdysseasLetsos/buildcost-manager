@@ -321,9 +321,12 @@ export type Database = {
           id: string;
           company_id: string;
           month_id: string;
+          office_id: string | null;
+          vehicle_id: string | null;
           expense_date: string;
           scope: string;
           category: string;
+          expense_subtype: string | null;
           description: string | null;
           amount: number;
           allocation_method: string;
@@ -337,9 +340,12 @@ export type Database = {
           id?: string;
           company_id: string;
           month_id: string;
+          office_id?: string | null;
+          vehicle_id?: string | null;
           expense_date: string;
           scope: string;
           category: string;
+          expense_subtype?: string | null;
           description?: string | null;
           amount: number;
           allocation_method: string;
@@ -351,14 +357,86 @@ export type Database = {
         };
         Update: {
           month_id?: string;
+          office_id?: string | null;
+          vehicle_id?: string | null;
           expense_date?: string;
           scope?: string;
           category?: string;
+          expense_subtype?: string | null;
           description?: string | null;
           amount?: number;
           allocation_method?: string;
           allocation_status?: string;
           notes?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      company_offices: {
+        Row: {
+          id: string;
+          company_id: string;
+          name: string;
+          address: string | null;
+          notes: string | null;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          name: string;
+          address?: string | null;
+          notes?: string | null;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          address?: string | null;
+          notes?: string | null;
+          active?: boolean;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      company_vehicles: {
+        Row: {
+          id: string;
+          company_id: string;
+          name: string;
+          plate_number: string | null;
+          model: string | null;
+          notes: string | null;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          name: string;
+          plate_number?: string | null;
+          model?: string | null;
+          notes?: string | null;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          plate_number?: string | null;
+          model?: string | null;
+          notes?: string | null;
+          active?: boolean;
           created_by?: string | null;
           updated_at?: string;
         };

@@ -14,8 +14,14 @@ export type Expense = Omit<
   allocation_status: ExpenseAllocationStatus;
 };
 
+export type CompanyOffice = Database["public"]["Tables"]["company_offices"]["Row"];
+export type CompanyVehicle =
+  Database["public"]["Tables"]["company_vehicles"]["Row"];
+
 export type ExpenseWithRelations = Expense & {
   monthKey: string;
+  officeName?: string | null;
+  vehicleName?: string | null;
 };
 
 export type ExpenseFilters = {
@@ -60,6 +66,17 @@ export type ExpenseActionState = {
   fieldErrors?: Partial<Record<string, string>>;
 };
 
+export type ExpenseResourceActionState<TResource> = {
+  ok: boolean;
+  message?: string;
+  resource?: TResource;
+  fieldErrors?: Partial<Record<string, string>>;
+};
+
 export const initialExpenseActionState: ExpenseActionState = {
+  ok: false,
+};
+
+export const initialExpenseResourceActionState = {
   ok: false,
 };
