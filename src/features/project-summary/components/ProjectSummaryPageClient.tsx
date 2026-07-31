@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { ProjectSummaryReport, ProjectSummaryTotals } from "../types";
 import { loadProjectSummaryReport } from "../actions/load-project-summary-report";
+import { ClientOutstandingBalancesSection } from "./ClientOutstandingBalancesSection";
 import {
   addCostBreakdown,
   calculateTotalCost,
@@ -55,6 +56,10 @@ function emptyReport(monthId: string): ProjectSummaryReport {
     supplierOutstandingBalances: {
       totalOutstandingAmount: 0,
       suppliers: [],
+    },
+    clientOutstandingBalances: {
+      totalOutstandingAmount: 0,
+      clients: [],
     },
   };
 }
@@ -156,6 +161,10 @@ export function ProjectSummaryPageClient({
       </div>
 
       <ProjectComparisonTable projects={visibleProjects} />
+      <ClientOutstandingBalancesSection
+        balances={report.clientOutstandingBalances}
+        projectId={projectId}
+      />
       <SupplierOutstandingBalancesSection
         balances={report.supplierOutstandingBalances}
         projectId={projectId}

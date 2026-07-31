@@ -43,6 +43,7 @@ export async function createRevenue(
     revenueDate: formData.get("revenueDate"),
     clientName: formData.get("clientName"),
     invoiceNumber: formData.get("invoiceNumber"),
+    paymentMethod: formData.get("paymentMethod"),
     revenueType: formData.get("revenueType"),
     invoicedAmount: formData.get("invoicedAmount"),
     receivedAmount: formData.get("receivedAmount"),
@@ -62,8 +63,10 @@ export async function createRevenue(
   const input = validation.data;
 
   let normalized;
+  let projectClientName: string | null = null;
   try {
-    await validateRevenueRelations(companyId, input);
+    const { project } = await validateRevenueRelations(companyId, input);
+    projectClientName = project.client_name?.trim() || null;
     normalized = normalizeRevenueInput(input);
     await checkDuplicateRevenueInvoice({
       companyId,
@@ -85,8 +88,9 @@ export async function createRevenue(
       month_id: input.monthId,
       project_id: input.projectId,
       revenue_date: input.revenueDate,
-      client_name: input.clientName,
+      client_name: projectClientName ?? input.clientName,
       invoice_number: input.invoiceNumber,
+      payment_method: input.paymentMethod,
       revenue_type: input.revenueType,
       invoiced_amount: normalized.invoicedAmount,
       received_amount: normalized.receivedAmount,
@@ -115,6 +119,7 @@ export async function createRevenue(
     entityId: revenue.id,
     metadata: {
       revenueType: input.revenueType,
+      paymentMethod: input.paymentMethod,
       invoicedAmount: normalized.invoicedAmount,
       receivedAmount: normalized.receivedAmount,
     },

@@ -123,10 +123,37 @@ export type SupplierOutstandingBalancesReport = {
   suppliers: SupplierOutstandingBalance[];
 };
 
+export type ClientOutstandingRevenue = {
+  revenueId: string;
+  projectId: string;
+  projectName: string;
+  revenueDate: string;
+  invoiceNumber: string | null;
+  paymentMethod: string;
+  totalAmount: number;
+  receivedAmount: number;
+  remainingAmount: number;
+  pendingPercentage: number;
+  status: string;
+};
+
+export type ClientOutstandingBalance = {
+  clientName: string;
+  totalOutstandingAmount: number;
+  pendingRevenueCount: number;
+  revenues: ClientOutstandingRevenue[];
+};
+
+export type ClientOutstandingBalancesReport = {
+  totalOutstandingAmount: number;
+  clients: ClientOutstandingBalance[];
+};
+
 export type ProjectSummaryReport = {
   monthId: string;
   projects: ProjectSummaryRow[];
   totals: ProjectSummaryTotals;
   warnings: ProjectSummaryWarning[];
   supplierOutstandingBalances: SupplierOutstandingBalancesReport;
+  clientOutstandingBalances: ClientOutstandingBalancesReport;
 };

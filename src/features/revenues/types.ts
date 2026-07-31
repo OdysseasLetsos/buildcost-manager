@@ -1,10 +1,11 @@
 import type { Database } from "@/src/integrations/supabase/types";
-import type { RevenueStatus, RevenueType } from "./constants";
+import type { RevenuePaymentMethod, RevenueStatus, RevenueType } from "./constants";
 
 export type Revenue = Omit<
   Database["public"]["Tables"]["revenues"]["Row"],
-  "revenue_type" | "status"
+  "payment_method" | "revenue_type" | "status"
 > & {
+  payment_method: RevenuePaymentMethod;
   revenue_type: RevenueType;
   status: RevenueStatus;
 };

@@ -6,8 +6,11 @@ import type { Project } from "@/src/features/projects/types";
 import {
   revenueStatusLabels,
   revenueStatuses,
+  revenuePaymentMethodLabels,
+  revenuePaymentMethods,
   revenueTypeLabels,
   revenueTypes,
+  type RevenuePaymentMethod,
   type RevenueStatus,
   type RevenueType,
 } from "../constants";
@@ -41,7 +44,7 @@ function calculateDerivedFields({
   invoicedAmount: number;
   receivedAmount: number;
 }): { remainingAmount: number; status: RevenueStatus } {
-  if (revenueType === "invoice") {
+  if (revenueType !== "credit") {
     const remainingAmount = Math.max(invoicedAmount - receivedAmount, 0);
     if (remainingAmount === 0 && invoicedAmount > 0) {
       return { remainingAmount, status: "paid" };
@@ -53,6 +56,11 @@ function calculateDerivedFields({
   }
 
   return { remainingAmount: 0, status: "paid" };
+}
+
+function pendingPercentage(totalAmount: number, remainingAmount: number): string {
+  if (totalAmount <= 0) return "0.00";
+  return ((remainingAmount / totalAmount) * 100).toFixed(2);
 }
 
 export function RevenueForm({
@@ -79,6 +87,14 @@ export function RevenueForm({
   const [revenueType, setRevenueType] = useState<RevenueType>(
     revenue?.revenue_type ?? "invoice",
   );
+  const [projectId, setProjectId] = useState(revenue?.project_id ?? "");
+  const selectedProject = projects.find((project) => project.id === projectId);
+  const [clientName, setClientName] = useState(
+    revenue?.client_name ?? selectedProject?.client_name ?? "",
+  );
+  const [paymentMethod, setPaymentMethod] = useState<RevenuePaymentMethod>(
+    revenue?.payment_method ?? "bank",
+  );
   const [invoicedAmount, setInvoicedAmount] = useState(
     decimalValue(revenue?.invoiced_amount ?? (revenueType === "invoice" ? undefined : 0)),
   );
@@ -94,11 +110,40 @@ export function RevenueForm({
     receivedAmount: parseAmount(receivedAmount),
   });
   const remainingAmount = formattedAmount(derivedFields.remainingAmount);
+  const pendingPercent = pendingPercentage(
+    parseAmount(invoicedAmount),
+    derivedFields.remainingAmount,
+  );
   const status = statusOverride === "cancelled" ? "cancelled" : derivedFields.status;
+  const statusOptions = revenue?.status === "cancelled"
+    ? revenueStatuses
+    : revenueStatuses.filter((statusOption) => statusOption !== "cancelled");
 
   useEffect(() => {
     if (state.ok) onSuccess?.();
   }, [onSuccess, state.ok]);
+
+  function handleProjectChange(nextProjectId: string) {
+    setProjectId(nextProjectId);
+    const project = projects.find((item) => item.id === nextProjectId);
+    if (project?.client_name) {
+      setClientName(project.client_name);
+    } else {
+      setClientName("");
+    }
+  }
+
+  function handleStatusChange(nextStatus: RevenueStatus) {
+    setStatusOverride(nextStatus === "cancelled" ? "cancelled" : null);
+
+    if (nextStatus === "paid") {
+      setReceivedAmount(formattedAmount(parseAmount(invoicedAmount)));
+    }
+
+    if (nextStatus === "pending") {
+      setReceivedAmount("0");
+    }
+  }
 
   return (
     <form action={formAction} className="grid gap-4">
@@ -148,9 +193,10 @@ export function RevenueForm({
           Έργο
           <select
             className="rounded-lg border border-slate-300 px-3 py-2"
-            defaultValue={revenue?.project_id ?? ""}
             name="projectId"
+            onChange={(event) => handleProjectChange(event.target.value)}
             required
+            value={projectId}
           >
             <option value="">Επιλέξτε έργο</option>
             {projects.map((project) => (
@@ -164,11 +210,23 @@ export function RevenueForm({
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Πελάτης
           <input
-            className="rounded-lg border border-slate-300 px-3 py-2"
-            defaultValue={revenue?.client_name ?? ""}
+            className="rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-50 disabled:text-slate-600"
+            disabled={Boolean(selectedProject?.client_name)}
             name="clientName"
+            onChange={(event) => setClientName(event.target.value)}
             required
+            value={clientName}
           />
+          <span className="text-xs text-slate-500">
+            {selectedProject?.client_name
+              ? "Πελάτης έργου"
+              : projectId
+                ? "Δεν έχει δηλωθεί πελάτης στο έργο."
+                : "Επιλέξτε έργο για αυτόματη συμπλήρωση πελάτη."}
+          </span>
+          {selectedProject?.client_name ? (
+            <input name="clientName" type="hidden" value={clientName} />
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
@@ -177,7 +235,32 @@ export function RevenueForm({
             className="rounded-lg border border-slate-300 px-3 py-2"
             defaultValue={revenue?.invoice_number ?? ""}
             name="invoiceNumber"
+            required={paymentMethod === "bank"}
           />
+          {paymentMethod === "bank" ? (
+            <span className="text-xs text-amber-700">
+              Ο αριθμός τιμολογίου είναι υποχρεωτικός όταν ο τρόπος είσπραξης είναι Τράπεζα.
+            </span>
+          ) : null}
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          Τρόπος είσπραξης
+          <select
+            className="rounded-lg border border-slate-300 px-3 py-2"
+            name="paymentMethod"
+            onChange={(event) =>
+              setPaymentMethod(event.target.value as RevenuePaymentMethod)
+            }
+            required
+            value={paymentMethod}
+          >
+            {revenuePaymentMethods.map((method) => (
+              <option key={method} value={method}>
+                {revenuePaymentMethodLabels[method]}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
@@ -198,10 +281,10 @@ export function RevenueForm({
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-          Τιμολογηθέν Ποσό
+          Συνολικό ποσό
           <input
             className="rounded-lg border border-slate-300 px-3 py-2"
-            min="0"
+            min="0.01"
             name="invoicedAmount"
             onChange={(event) => setInvoicedAmount(event.target.value)}
             required
@@ -240,18 +323,24 @@ export function RevenueForm({
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          Ποσοστό εκκρεμότητας
+          <input
+            className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2"
+            readOnly
+            value={`${pendingPercent}%`}
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
           Κατάσταση
           <select
             className="rounded-lg border border-slate-300 px-3 py-2"
             name="status"
-            onChange={(event) => {
-              const nextStatus = event.target.value as RevenueStatus;
-              setStatusOverride(nextStatus === "cancelled" ? "cancelled" : null);
-            }}
+            onChange={(event) => handleStatusChange(event.target.value as RevenueStatus)}
             required
             value={status}
           >
-            {revenueStatuses.map((statusOption) => (
+            {statusOptions.map((statusOption) => (
               <option key={statusOption} value={statusOption}>
                 {revenueStatusLabels[statusOption]}
               </option>

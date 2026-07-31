@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { revenueStatuses, revenueTypes } from "./constants";
+import { revenuePaymentMethods, revenueStatuses, revenueTypes } from "./constants";
 
 const optionalText = z
   .string()
@@ -30,6 +30,9 @@ export const revenueInputSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Η ημερομηνία δεν είναι έγκυρη."),
   clientName: requiredText("Συμπληρώστε πελάτη."),
   invoiceNumber: optionalText,
+  paymentMethod: z.enum(revenuePaymentMethods, {
+    message: "Επιλέξτε τρόπο είσπραξης.",
+  }),
   revenueType: z.enum(revenueTypes, {
     message: "Επιλέξτε τύπο εσόδου.",
   }),
@@ -40,6 +43,32 @@ export const revenueInputSchema = z.object({
     message: "Επιλέξτε κατάσταση.",
   }),
   notes: optionalText,
+}).superRefine((input, context) => {
+  if (input.paymentMethod === "bank" && !input.invoiceNumber) {
+    context.addIssue({
+      code: "custom",
+      path: ["invoiceNumber"],
+      message:
+        "Ο αριθμός τιμολογίου είναι υποχρεωτικός όταν ο τρόπος είσπραξης είναι Τράπεζα.",
+    });
+  }
+
+  if (input.invoicedAmount <= 0) {
+    context.addIssue({
+      code: "custom",
+      path: ["invoicedAmount"],
+      message: "Το συνολικό ποσό πρέπει να είναι μεγαλύτερο από 0.",
+    });
+  }
+
+  if (input.receivedAmount > input.invoicedAmount) {
+    context.addIssue({
+      code: "custom",
+      path: ["receivedAmount"],
+      message:
+        "Το εισπραχθέν ποσό δεν μπορεί να είναι μεγαλύτερο από το συνολικό ποσό.",
+    });
+  }
 });
 
 export const revenueIdSchema = z

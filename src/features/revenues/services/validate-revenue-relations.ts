@@ -6,6 +6,20 @@ function isDateInsideMonth(dateValue: string, monthKey: string): boolean {
   return dateValue.startsWith(`${monthKey}-`);
 }
 
+function getTodayDateKey() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Athens",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
 export async function validateRevenueRelations(
   companyId: string,
   input: Pick<RevenueInput, "monthId" | "projectId" | "revenueDate">,
@@ -25,6 +39,10 @@ export async function validateRevenueRelations(
 
   if (!isDateInsideMonth(input.revenueDate, monthlyPeriod.month_key)) {
     throw new Error("Η ημερομηνία εσόδου δεν ανήκει στον επιλεγμένο μήνα.");
+  }
+
+  if (input.revenueDate > getTodayDateKey()) {
+    throw new Error("Δεν μπορείτε να καταχωρήσετε έσοδο σε μελλοντική ημερομηνία.");
   }
 
   return { monthlyPeriod, project };

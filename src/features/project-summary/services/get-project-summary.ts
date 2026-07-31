@@ -25,6 +25,10 @@ import {
   emptySupplierOutstandingBalances,
   getSupplierOutstandingBalancesForProjectSummary,
 } from "./get-supplier-outstanding-balances";
+import {
+  emptyClientOutstandingBalances,
+  getClientOutstandingBalancesForProjectSummary,
+} from "./get-client-outstanding-balances";
 
 type ProjectRow = {
   id: string;
@@ -83,6 +87,7 @@ export async function getProjectSummary(
       },
       warnings: [],
       supplierOutstandingBalances: emptySupplierOutstandingBalances(),
+      clientOutstandingBalances: emptyClientOutstandingBalances(),
     };
   }
 
@@ -99,6 +104,7 @@ export async function getProjectSummary(
     revenuesResult,
     quotesResult,
     supplierOutstandingBalances,
+    clientOutstandingBalances,
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -145,6 +151,7 @@ export async function getProjectSummary(
       .select("project_id, status, amount, vat_amount, total_amount")
       .eq("company_id", companyId),
     getSupplierOutstandingBalancesForProjectSummary({ companyId, monthId }),
+    getClientOutstandingBalancesForProjectSummary({ companyId, monthId }),
   ]);
 
   const firstError =
@@ -342,5 +349,6 @@ export async function getProjectSummary(
       ...expenseResult.warnings,
     ],
     supplierOutstandingBalances,
+    clientOutstandingBalances,
   };
 }

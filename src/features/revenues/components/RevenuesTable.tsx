@@ -2,6 +2,7 @@
 
 import { Fragment, useActionState, useState } from "react";
 import { deleteRevenue } from "../actions/delete-revenue";
+import { revenuePaymentMethodLabels } from "../constants";
 import type { RevenueWithRelations } from "../types";
 import { initialRevenueActionState } from "../types";
 import { RevenueStatusBadge } from "./RevenueStatusBadge";
@@ -41,6 +42,11 @@ function DetailItem({ label, value }: Readonly<{ label: string; value: string | 
   );
 }
 
+function pendingPercentage(totalAmount: number, remainingAmount: number): string {
+  if (totalAmount <= 0) return "0.00";
+  return ((remainingAmount / totalAmount) * 100).toFixed(2);
+}
+
 export function RevenuesTable({
   revenues,
   canManage,
@@ -58,17 +64,19 @@ export function RevenuesTable({
   return (
     <section className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1240px] table-fixed text-left text-sm">
+        <table className="w-full min-w-[1380px] table-fixed text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-[0.08em] text-slate-500">
             <tr>
               <th className="w-28 whitespace-nowrap px-3 py-3">Ημερομηνία</th>
               <th className="w-44 px-3 py-3">Έργο</th>
               <th className="w-40 px-3 py-3">Πελάτης</th>
               <th className="w-36 whitespace-nowrap px-3 py-3">Αρ. Τιμολογίου</th>
+              <th className="w-28 whitespace-nowrap px-3 py-3">Τρόπος</th>
               <th className="w-28 whitespace-nowrap px-3 py-3">Τύπος</th>
-              <th className="w-32 whitespace-nowrap px-3 py-3 text-right">Τιμολογηθέντα</th>
+              <th className="w-32 whitespace-nowrap px-3 py-3 text-right">Συνολικό ποσό</th>
               <th className="w-32 whitespace-nowrap px-3 py-3 text-right">Εισπραχθέντα</th>
               <th className="w-28 whitespace-nowrap px-3 py-3 text-right">Υπόλοιπο</th>
+              <th className="w-28 whitespace-nowrap px-3 py-3 text-right">Εκκρ. %</th>
               <th className="w-30 whitespace-nowrap px-3 py-3">Κατάσταση</th>
               <th className="sticky right-0 z-10 w-44 whitespace-nowrap bg-slate-50 px-3 py-3 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">Ενέργειες</th>
             </tr>
@@ -90,10 +98,17 @@ export function RevenuesTable({
                     </td>
                     <td className="px-3 py-3"><div className="truncate" title={revenue.client_name}>{revenue.client_name}</div></td>
                     <td className="px-3 py-3"><div className="truncate" title={revenue.invoice_number ?? ""}>{revenue.invoice_number ?? "-"}</div></td>
+                    <td className="px-3 py-3">
+                      {revenuePaymentMethodLabels[revenue.payment_method] ??
+                        revenue.payment_method}
+                    </td>
                     <td className="px-3 py-3"><RevenueTypeBadge type={revenue.revenue_type} /></td>
                     <td className="whitespace-nowrap px-3 py-3 text-right">{currencyFormatter.format(revenue.invoiced_amount)}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-right font-semibold">{currencyFormatter.format(revenue.received_amount)}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-right">{currencyFormatter.format(revenue.remaining_amount)}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right">
+                      {pendingPercentage(revenue.invoiced_amount, revenue.remaining_amount)}%
+                    </td>
                     <td className="whitespace-nowrap px-3 py-3"><RevenueStatusBadge status={revenue.status} /></td>
                     <td className="sticky right-0 bg-white px-3 py-3 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]">
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -113,7 +128,7 @@ export function RevenuesTable({
                   </tr>
                   {isExpanded ? (
                     <tr>
-                      <td colSpan={10} className="bg-slate-50 px-4 py-4">
+                      <td colSpan={12} className="bg-slate-50 px-4 py-4">
                         <dl className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
                           <DetailItem label="Μήνας" value={revenue.monthKey} />
                           <DetailItem label="Σημειώσεις" value={revenue.notes} />
@@ -128,7 +143,7 @@ export function RevenuesTable({
             })}
             {revenues.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={12} className="px-4 py-8 text-center text-slate-500">
                   Δεν υπάρχουν έσοδα για τα επιλεγμένα φίλτρα.
                 </td>
               </tr>
