@@ -59,6 +59,14 @@ export const projectInputSchema = z
     notes: optionalText,
   })
   .superRefine((input, context) => {
+    if (input.status === "offer" && !input.offerDate) {
+      context.addIssue({
+        code: "custom",
+        message: "Η ημερομηνία προσφοράς είναι υποχρεωτική.",
+        path: ["offerDate"],
+      });
+    }
+
     if (input.status === "in_progress" && !input.startDate) {
       context.addIssue({
         code: "custom",

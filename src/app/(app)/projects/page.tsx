@@ -21,6 +21,7 @@ export default async function ProjectsPage() {
   ]);
 
   let canManage = false;
+  let canDelete = false;
 
   try {
     await requireRole(companyId, ["owner", "admin", "office"]);
@@ -29,11 +30,19 @@ export default async function ProjectsPage() {
     canManage = false;
   }
 
+  try {
+    await requireRole(companyId, ["owner", "admin"]);
+    canDelete = true;
+  } catch {
+    canDelete = false;
+  }
+
   return (
     <ProjectsPageClient
       projects={projects}
       quotes={quotes}
       canManage={canManage}
+      canDelete={canDelete}
       featureAvailable={featureAvailable}
     />
   );

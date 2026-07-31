@@ -211,9 +211,10 @@ export function ProjectForm({
 
         {status === "offer" ? (
           <DateField
-            label="Ημερομηνία Προσφοράς"
+            label="Ημερομηνία προσφοράς"
             name="offerDate"
             defaultValue={formatDateValue(project?.offer_date ?? null)}
+            required
             disabled={isProjectLocked}
             error={state.fieldErrors?.offerDate}
           />

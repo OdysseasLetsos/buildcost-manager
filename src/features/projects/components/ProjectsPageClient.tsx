@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProject } from "../actions/create-project";
+import { deleteProject } from "../actions/delete-project";
 import { updateProject } from "../actions/update-project";
 import { calculateProjectQuoteTotals } from "../services/calculate-project-quote-totals";
 import type {
@@ -34,11 +35,13 @@ export function ProjectsPageClient({
   projects,
   quotes,
   canManage,
+  canDelete,
   featureAvailable,
 }: Readonly<{
   projects: ManagedProject[];
   quotes: ProjectQuote[];
   canManage: boolean;
+  canDelete: boolean;
   featureAvailable: boolean;
 }>) {
   const router = useRouter();
@@ -76,6 +79,7 @@ export function ProjectsPageClient({
   }
 
   const canMutateProjects = canManage && featureAvailable;
+  const canDeleteProjects = canDelete && featureAvailable;
   const editingProjectQuotes = editingProject
     ? quotes.filter((quote) => quote.project_id === editingProject.id)
     : [];
@@ -169,10 +173,13 @@ export function ProjectsPageClient({
         projects={filteredProjects}
         quoteTotalsByProject={quoteTotalsByProject}
         canManage={canMutateProjects}
+        canDelete={canDeleteProjects}
         onEditProject={(project) => {
           setShowCreateForm(false);
           setEditingProject(project);
         }}
+        onDeleteProject={deleteProject}
+        onDeleteSuccess={handleMutationSuccess}
       />
     </div>
   );

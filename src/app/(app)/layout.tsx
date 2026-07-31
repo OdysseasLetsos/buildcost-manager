@@ -81,13 +81,6 @@ const appNavigationItems: AppNavigationItem[] = [
     featureCode: "project_summary",
   },
   {
-    href: "/ai-invoices",
-    label: "AI Τιμολόγια",
-    icon: "aiInvoices",
-    allowedRoles: ["owner", "admin"],
-    featureCode: "ai_invoice_import",
-  },
-  {
     href: "/reports",
     label: "Αναφορές",
     icon: "reports",
