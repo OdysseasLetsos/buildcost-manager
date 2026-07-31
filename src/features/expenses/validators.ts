@@ -3,6 +3,7 @@ import {
   expenseAllocationMethods,
   expenseScopes,
   officeExpenseSubtypes,
+  taxExpenseSubtypes,
   transportExpenseSubtypes,
 } from "./constants";
 
@@ -105,6 +106,27 @@ export const expenseInputSchema = z.object({
       });
     }
   }
+
+  if (input.category === "taxes") {
+    if (
+      !input.expenseSubtype ||
+      !taxExpenseSubtypes.some((subtype) => subtype.value === input.expenseSubtype)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["expenseSubtype"],
+        message: "Επιλέξτε τύπο φόρου.",
+      });
+    }
+
+    if (input.allocationMethod !== "equal_per_active_project") {
+      context.addIssue({
+        code: "custom",
+        path: ["allocationMethod"],
+        message: "Οι φόροι κατανέμονται ισόποσα σε ενεργά έργα.",
+      });
+    }
+  }
 });
 
 export const companyOfficeInputSchema = z.object({
@@ -145,6 +167,37 @@ export const vehicleExpenseBatchInputSchema = z.object({
   notes: optionalText,
 });
 
+export const taxExpenseBatchInputSchema = z
+  .object({
+    monthId: z.string().uuid("Επιλέξτε μήνα."),
+    expenseDate: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Η ημερομηνία φόρου δεν είναι έγκυρη."),
+    vatAmount: optionalBatchAmount,
+    feeAmount: optionalBatchAmount,
+    fmyAmount: optionalBatchAmount,
+    otherAmount: optionalBatchAmount,
+    customTaxes: z.array(
+      z.object({
+        name: z.string().trim(),
+        amount: optionalBatchAmount,
+      }),
+    ),
+    notes: optionalText,
+  })
+  .superRefine((input, context) => {
+    input.customTaxes.forEach((customTax, index) => {
+      if (customTax.amount > 0 && customTax.name.length === 0) {
+        context.addIssue({
+          code: "custom",
+          path: ["customTaxes", index, "name"],
+          message: "Συμπληρώστε όνομα φόρου.",
+        });
+      }
+    });
+  });
+
 export const expenseIdSchema = z
   .string()
   .uuid("Το έξοδο δεν είναι έγκυρο.");
@@ -154,3 +207,4 @@ export type CompanyOfficeInput = z.infer<typeof companyOfficeInputSchema>;
 export type CompanyVehicleInput = z.infer<typeof companyVehicleInputSchema>;
 export type OfficeExpenseBatchInput = z.infer<typeof officeExpenseBatchInputSchema>;
 export type VehicleExpenseBatchInput = z.infer<typeof vehicleExpenseBatchInputSchema>;
+export type TaxExpenseBatchInput = z.infer<typeof taxExpenseBatchInputSchema>;

@@ -6,6 +6,7 @@ import { createCompanyOffice } from "../actions/create-company-office";
 import { createCompanyVehicle } from "../actions/create-company-vehicle";
 import { deactivateCompanyOffice } from "../actions/deactivate-company-office";
 import { deactivateCompanyVehicle } from "../actions/deactivate-company-vehicle";
+import { saveTaxExpenses } from "../actions/save-tax-expenses";
 import {
   allocationMethodLabels,
   expenseAllocationMethods,
@@ -32,6 +33,233 @@ type ExpenseFormAction = (
 
 function decimalValue(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : String(value);
+}
+
+function getTodayDateKey() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Athens",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultExpenseDate(monthId: string, monthlyPeriods: MonthlyPeriod[]) {
+  const today = getTodayDateKey();
+  const period = monthlyPeriods.find((monthlyPeriod) => monthlyPeriod.id === monthId);
+
+  if (!period) return today;
+  if (today.startsWith(`${period.month_key}-`)) return today;
+
+  const firstDay = `${period.month_key}-01`;
+  return firstDay > today ? today : firstDay;
+}
+
+function CategorySelector({
+  category,
+  onCategoryChange,
+}: Readonly<{
+  category: string;
+  onCategoryChange: (value: string) => void;
+}>) {
+  return (
+    <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+      Κατηγορία
+      <select
+        name="category"
+        value={category}
+        onChange={(event) => onCategoryChange(event.target.value)}
+        required
+        className="rounded-lg border border-slate-300 px-3 py-2"
+      >
+        {generalExpenseCategories.map((categoryOption) => (
+          <option key={categoryOption.value} value={categoryOption.value}>
+            {expenseCategoryLabels[categoryOption.value]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function TaxExpenseBatchForm({
+  category,
+  monthlyPeriods,
+  defaultMonthId,
+  onCategoryChange,
+  onSuccess,
+}: Readonly<{
+  category: string;
+  monthlyPeriods: MonthlyPeriod[];
+  defaultMonthId: string;
+  onCategoryChange: (value: string) => void;
+  onSuccess?: () => void;
+}>) {
+  const [state, formAction, isPending] = useActionState(
+    saveTaxExpenses,
+    initialExpenseActionState,
+  );
+  const [monthId, setMonthId] = useState(defaultMonthId);
+  const [customTaxRows, setCustomTaxRows] = useState([{ id: "initial" }]);
+
+  useEffect(() => {
+    if (state.ok) onSuccess?.();
+  }, [onSuccess, state.ok]);
+
+  return (
+    <div className="grid gap-4">
+      {state.message ? (
+        <p
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            state.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          {state.message}
+        </p>
+      ) : null}
+
+      <CategorySelector category={category} onCategoryChange={onCategoryChange} />
+
+      <form action={formAction} className="grid gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-5">
+        <input type="hidden" name="monthId" value={monthId} />
+        <div>
+          <p className="text-sm font-medium text-indigo-700">Φόροι</p>
+          <h3 className="mt-1 text-lg font-semibold text-slate-950">
+            Καταχώρηση φόρων
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Η μέθοδος κατανομής είναι πάντα Ισόποσα σε ενεργά έργα.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Μήνας
+            <select
+              value={monthId}
+              onChange={(event) => setMonthId(event.target.value)}
+              required
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+            >
+              <option value="">Επιλέξτε μήνα</option>
+              {monthlyPeriods.map((period) => (
+                <option key={period.id} value={period.id}>
+                  {period.month_key}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Ημερομηνία
+            <input
+              name="expenseDate"
+              type="date"
+              defaultValue={getDefaultExpenseDate(monthId, monthlyPeriods)}
+              max={getTodayDateKey()}
+              required
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 md:col-span-2">
+            Μέθοδος κατανομής
+            <input
+              value="Ισόποσα σε ενεργά έργα"
+              disabled
+              className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-600"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-4">
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            ΦΠΑ
+            <input name="vatAmount" type="number" min="0" step="0.01" placeholder="0,00" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            ΦΕΕ
+            <input name="feeAmount" type="number" min="0" step="0.01" placeholder="0,00" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            ΦΜΥ
+            <input name="fmyAmount" type="number" min="0" step="0.01" placeholder="0,00" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            Άλλο
+            <input name="otherAmount" type="number" min="0" step="0.01" placeholder="0,00" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+          </label>
+        </div>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h4 className="text-sm font-semibold text-slate-950">Πρόσθετοι φόροι</h4>
+            <button
+              type="button"
+              onClick={() =>
+                setCustomTaxRows((current) => [
+                  ...current,
+                  { id: crypto.randomUUID() },
+                ])
+              }
+              className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900"
+            >
+              + Προσθήκη φόρου
+            </button>
+          </div>
+          <div className="mt-3 grid gap-3">
+            {customTaxRows.map((row) => (
+              <div key={row.id} className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+                <input
+                  name="customTaxName"
+                  placeholder="Όνομα φόρου"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <input
+                  name="customTaxAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Ποσό"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  disabled={customTaxRows.length === 1}
+                  onClick={() =>
+                    setCustomTaxRows((current) =>
+                      current.filter((item) => item.id !== row.id),
+                    )
+                  }
+                  className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:text-slate-300 disabled:hover:bg-transparent"
+                >
+                  Αφαίρεση
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          Σημειώσεις
+          <textarea name="notes" rows={2} className="rounded-lg border border-slate-300 bg-white px-3 py-2" />
+        </label>
+
+        <button
+          type="submit"
+          disabled={isPending}
+          className="justify-self-start rounded-lg bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {isPending ? "Αποθήκευση..." : "Αποθήκευση φόρων"}
+        </button>
+      </form>
+    </div>
+  );
 }
 
 export function ExpenseForm({
@@ -92,7 +320,7 @@ export function ExpenseForm({
     useState<ExpenseResourceActionState<CompanyVehicle>>({ ok: false });
   const [isSavingOffice, setIsSavingOffice] = useState(false);
   const [isSavingVehicle, setIsSavingVehicle] = useState(false);
-  const isComingSoon = category === "accountant" || category === "taxes";
+  const isComingSoon = category === "accountant";
   const isOfficeExpense = category === "office";
   const isTransportExpense = category === "transport";
 
@@ -113,6 +341,18 @@ export function ExpenseForm({
       setSelectedOfficeId("");
       setSelectedVehicleId("");
     }
+  }
+
+  if (category === "taxes" && !expense) {
+    return (
+      <TaxExpenseBatchForm
+        category={category}
+        monthlyPeriods={monthlyPeriods}
+        defaultMonthId={defaultMonthId}
+        onCategoryChange={handleCategoryChange}
+        onSuccess={onSuccess}
+      />
+    );
   }
 
   async function handleCreateOffice() {
@@ -230,16 +470,7 @@ export function ExpenseForm({
             className="rounded-lg border border-slate-300 px-3 py-2"
           />
         </label>
-        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-          Κατηγορία
-          <select name="category" value={category} onChange={(event) => handleCategoryChange(event.target.value)} required className="rounded-lg border border-slate-300 px-3 py-2">
-            {generalExpenseCategories.map((category) => (
-              <option key={category.value} value={category.value}>
-                {expenseCategoryLabels[category.value]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <CategorySelector category={category} onCategoryChange={handleCategoryChange} />
 
         {isOfficeExpense ? (
           <>
