@@ -6,8 +6,13 @@ import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import { createCompanyOffice } from "../actions/create-company-office";
 import { createCompanyVehicle } from "../actions/create-company-vehicle";
 import { saveOfficeExpenses } from "../actions/save-office-expenses";
+import { saveTaxExpenses } from "../actions/save-tax-expenses";
 import { saveVehicleExpenses } from "../actions/save-vehicle-expenses";
-import { expenseSubtypeLabels, type ExpenseScope } from "../constants";
+import {
+  allocationMethodLabels,
+  expenseSubtypeLabels,
+  type ExpenseScope,
+} from "../constants";
 import type {
   CompanyOffice,
   CompanyVehicle,
@@ -89,6 +94,70 @@ function ExistingResourceExpenses({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function ExistingTaxExpenses({
+  expenses,
+  onEditExpense,
+}: Readonly<{
+  expenses: ExpenseWithRelations[];
+  onEditExpense: (expense: ExpenseWithRelations) => void;
+}>) {
+  if (expenses.length === 0) {
+    return (
+      <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">
+        Δεν υπάρχουν προηγούμενες καταχωρήσεις φόρων για τον επιλεγμένο μήνα.
+      </p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <table className="w-full min-w-[680px] text-left text-sm">
+        <thead className="bg-slate-50 text-xs uppercase tracking-[0.08em] text-slate-500">
+          <tr>
+            <th className="px-3 py-3">Τύπος φόρου</th>
+            <th className="px-3 py-3">Ημερομηνία</th>
+            <th className="px-3 py-3 text-right">Ποσό</th>
+            <th className="px-3 py-3">Μέθοδος κατανομής</th>
+            <th className="px-3 py-3">Ενέργειες</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {expenses.map((expense) => (
+            <tr key={expense.id}>
+              <td className="px-3 py-3 font-medium text-slate-800">
+                {expense.expense_subtype === "custom" && expense.description
+                  ? expense.description
+                  : expense.expense_subtype
+                    ? expenseSubtypeLabels[expense.expense_subtype] ??
+                      expense.expense_subtype
+                    : "Φόρος"}
+              </td>
+              <td className="whitespace-nowrap px-3 py-3 text-slate-600">
+                {expense.expense_date}
+              </td>
+              <td className="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-950">
+                {currencyFormatter.format(expense.amount)}
+              </td>
+              <td className="px-3 py-3 text-slate-600">
+                {allocationMethodLabels[expense.allocation_method]}
+              </td>
+              <td className="px-3 py-3">
+                <button
+                  type="button"
+                  onClick={() => onEditExpense(expense)}
+                  className="rounded-md px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                >
+                  Επεξεργασία
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -356,6 +425,221 @@ function VehicleExpenseCard({
   );
 }
 
+function TaxExpenseCard({
+  monthId,
+  defaultDate,
+  maxDate,
+  existingExpenses,
+  canManage,
+  onEditExpense,
+}: Readonly<{
+  monthId: string;
+  defaultDate: string;
+  maxDate: string;
+  existingExpenses: ExpenseWithRelations[];
+  canManage: boolean;
+  onEditExpense: (expense: ExpenseWithRelations) => void;
+}>) {
+  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(
+    saveTaxExpenses,
+    initialExpenseActionState,
+  );
+  const [customTaxRows, setCustomTaxRows] = useState([{ id: "initial" }]);
+
+  useEffect(() => {
+    if (state.ok) router.refresh();
+  }, [router, state.ok]);
+
+  return (
+    <article className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-indigo-700">Φόροι</p>
+          <h4 className="mt-1 text-lg font-semibold text-slate-950">
+            Καταχώρηση φόρων μήνα
+          </h4>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Κάθε συμπληρωμένο ποσό αποθηκεύεται ως ξεχωριστό γενικό έξοδο.
+          </p>
+        </div>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-800">
+          Ισόποσα σε ενεργά έργα
+        </span>
+      </div>
+
+      {canManage ? (
+        <form action={formAction} className="mt-5 grid gap-4">
+          <input type="hidden" name="monthId" value={monthId} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+              Ημερομηνία
+              <input
+                name="expenseDate"
+                type="date"
+                defaultValue={defaultDate}
+                max={maxDate}
+                required
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+              Μέθοδος κατανομής
+              <input
+                value="Ισόποσα σε ενεργά έργα"
+                disabled
+                className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+              ΦΠΑ
+              <input
+                name="vatAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+              ΦΕΕ
+              <input
+                name="feeAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+              ΦΜΥ
+              <input
+                name="fmyAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+              Άλλο
+              <input
+                name="otherAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h5 className="text-sm font-semibold text-slate-950">
+                Πρόσθετοι φόροι
+              </h5>
+              <button
+                type="button"
+                onClick={() =>
+                  setCustomTaxRows((current) => [
+                    ...current,
+                    { id: crypto.randomUUID() },
+                  ])
+                }
+                className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900"
+              >
+                + Προσθήκη φόρου
+              </button>
+            </div>
+            <div className="mt-3 grid gap-3">
+              {customTaxRows.map((row, index) => (
+                <div key={row.id} className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+                  <input
+                    name="customTaxName"
+                    placeholder="Όνομα φόρου"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="customTaxAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Ποσό"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    disabled={customTaxRows.length === 1}
+                    onClick={() =>
+                      setCustomTaxRows((current) =>
+                        current.filter((item) => item.id !== row.id),
+                      )
+                    }
+                    className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:text-slate-300 disabled:hover:bg-transparent"
+                    aria-label={`Αφαίρεση φόρου ${index + 1}`}
+                  >
+                    Αφαίρεση
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            Σημειώσεις
+            <textarea
+              name="notes"
+              rows={2}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+            />
+          </label>
+
+          {state.message ? (
+            <p
+              className={`rounded-lg border px-3 py-2 text-sm ${
+                state.ok
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-red-200 bg-red-50 text-red-800"
+              }`}
+            >
+              {state.message}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={isPending}
+            className="justify-self-start rounded-lg bg-blue-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {isPending ? "Αποθήκευση..." : "Αποθήκευση φόρων"}
+          </button>
+        </form>
+      ) : (
+        <p className="mt-4 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+          Ο μήνας είναι κλειδωμένος ή δεν επιτρέπονται αλλαγές.
+        </p>
+      )}
+
+      <div className="mt-5">
+        <h5 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+          Προηγούμενες καταχωρήσεις φόρων
+        </h5>
+        <ExistingTaxExpenses
+          expenses={existingExpenses}
+          onEditExpense={onEditExpense}
+        />
+      </div>
+    </article>
+  );
+}
+
 function AddResourcePanel({
   resourceType,
   onResourceCreated,
@@ -527,7 +811,10 @@ export function GeneralExpenseResourceCards({
   const defaultDate = useMemo(() => getDefaultExpenseDate(month), [month]);
   const today = useMemo(() => getTodayDateKey(), []);
 
-  if (scope !== "general" || (category !== "office" && category !== "transport")) {
+  if (
+    scope !== "general" ||
+    (category !== "office" && category !== "transport" && category !== "taxes")
+  ) {
     return null;
   }
 
@@ -548,7 +835,11 @@ export function GeneralExpenseResourceCards({
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <p className="text-sm font-medium text-blue-700">Γενικά έξοδα</p>
         <h3 className="mt-1 text-lg font-semibold text-slate-950">
-          {category === "office" ? "Γραφείο" : "Μεταφορικά"}
+          {category === "office"
+            ? "Γραφείο"
+            : category === "transport"
+              ? "Μεταφορικά"
+              : "Φόροι"}
         </h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Συμπληρώστε ποσά για τον επιλεγμένο μήνα. Κάθε συμπληρωμένο ποσό
@@ -626,6 +917,17 @@ export function GeneralExpenseResourceCards({
             </p>
           ) : null}
         </>
+      ) : null}
+
+      {category === "taxes" ? (
+        <TaxExpenseCard
+          monthId={month.id}
+          defaultDate={defaultDate}
+          maxDate={today}
+          canManage={canManage}
+          existingExpenses={resourceExpenses}
+          onEditExpense={onEditExpense}
+        />
       ) : null}
     </section>
   );

@@ -28,12 +28,23 @@ export const transportExpenseSubtypes = [
   { value: "other", label: "Άλλο" },
 ] as const;
 
+export const taxExpenseSubtypes = [
+  { value: "vat", label: "ΦΠΑ" },
+  { value: "fee", label: "ΦΕΕ" },
+  { value: "fmy", label: "ΦΜΥ" },
+  { value: "other", label: "Άλλο" },
+  { value: "custom", label: "Προσαρμοσμένος φόρος" },
+] as const;
+
 export const expenseSubtypeLabels: Record<string, string> = {
   ...Object.fromEntries(
     officeExpenseSubtypes.map((subtype) => [subtype.value, subtype.label]),
   ),
   ...Object.fromEntries(
     transportExpenseSubtypes.map((subtype) => [subtype.value, subtype.label]),
+  ),
+  ...Object.fromEntries(
+    taxExpenseSubtypes.map((subtype) => [subtype.value, subtype.label]),
   ),
 };
 
@@ -86,3 +97,4 @@ export type ExpenseAllocationStatus = (typeof expenseAllocationStatuses)[number]
 export type OfficeExpenseSubtype = (typeof officeExpenseSubtypes)[number]["value"];
 export type TransportExpenseSubtype =
   (typeof transportExpenseSubtypes)[number]["value"];
+export type TaxExpenseSubtype = (typeof taxExpenseSubtypes)[number]["value"];
