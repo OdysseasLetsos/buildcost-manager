@@ -851,6 +851,7 @@ export type Database = {
           revenue_date: string;
           client_name: string;
           invoice_number: string | null;
+          payment_method: string;
           revenue_type: string;
           invoiced_amount: number;
           received_amount: number;
@@ -869,6 +870,7 @@ export type Database = {
           revenue_date: string;
           client_name: string;
           invoice_number?: string | null;
+          payment_method?: string;
           revenue_type: string;
           invoiced_amount?: number;
           received_amount?: number;
@@ -885,6 +887,7 @@ export type Database = {
           revenue_date?: string;
           client_name?: string;
           invoice_number?: string | null;
+          payment_method?: string;
           revenue_type?: string;
           invoiced_amount?: number;
           received_amount?: number;

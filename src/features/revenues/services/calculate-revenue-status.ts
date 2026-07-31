@@ -16,7 +16,7 @@ export function calculateRevenueStatus(input: {
 }): NormalizedRevenueAmounts {
   const forcedCancelled = input.status === "cancelled";
 
-  if (input.revenueType === "invoice") {
+  if (input.revenueType !== "credit") {
     const remainingAmount = Math.max(
       input.invoicedAmount - input.receivedAmount,
       0,
@@ -31,24 +31,6 @@ export function calculateRevenueStatus(input: {
       receivedAmount: input.receivedAmount,
       remainingAmount,
       status: forcedCancelled ? "cancelled" : status,
-    };
-  }
-
-  if (input.revenueType === "advance") {
-    return {
-      invoicedAmount: input.invoicedAmount,
-      receivedAmount: input.receivedAmount,
-      remainingAmount: 0,
-      status: forcedCancelled ? "cancelled" : "paid",
-    };
-  }
-
-  if (input.revenueType === "payment") {
-    return {
-      invoicedAmount: input.invoicedAmount,
-      receivedAmount: input.receivedAmount,
-      remainingAmount: 0,
-      status: forcedCancelled ? "cancelled" : "paid",
     };
   }
 
