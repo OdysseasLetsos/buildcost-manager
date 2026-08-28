@@ -7,8 +7,6 @@ import { getExpenseAllocationPreview } from "@/src/features/expenses/services/ge
 import { getCompanyOffices } from "@/src/features/expenses/services/get-company-offices";
 import { getCompanyVehicles } from "@/src/features/expenses/services/get-company-vehicles";
 import { getExpenses } from "@/src/features/expenses/services/get-expenses";
-import { getInvoiceSummary } from "@/src/features/ai-invoices/services/get-invoice-summary";
-import { listInvoiceDocuments } from "@/src/features/ai-invoices/services/list-invoice-documents";
 import { getMaterials } from "@/src/features/materials/services/get-materials";
 import { getSuppliers } from "@/src/features/materials/services/get-suppliers";
 import { getMonthlyPeriods } from "@/src/features/monthly-periods/services/get-monthly-periods";
@@ -94,7 +92,6 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const defaultMonthId = latestOpenMonth?.id ?? monthlyPeriods[0]?.id ?? "";
   const shouldLoadExpenses = canAccessExpenses && expensesFeatureAvailable;
   const shouldLoadMaterials = canAccessMaterials && materialsFeatureAvailable;
-  const shouldLoadAiInvoices = canAccessAiInvoices && aiInvoicesFeatureAvailable;
   const [
     expenses,
     offices,
@@ -103,7 +100,6 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     materials,
     suppliers,
     projects,
-    invoiceDocuments,
   ] = await Promise.all([
     shouldLoadExpenses ? getExpenses(companyId) : Promise.resolve([]),
     shouldLoadExpenses ? getCompanyOffices(companyId) : Promise.resolve([]),
@@ -122,7 +118,6 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     shouldLoadMaterials ? getMaterials(companyId) : Promise.resolve([]),
     shouldLoadMaterials ? getSuppliers(companyId) : Promise.resolve([]),
     shouldLoadMaterials ? getProjects(companyId) : Promise.resolve([]),
-    shouldLoadAiInvoices ? listInvoiceDocuments(companyId) : Promise.resolve([]),
   ]);
   const resolvedSearchParams = await searchParams;
   const initialSection =
@@ -140,11 +135,10 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
       defaultMonthId={defaultMonthId}
       canManageExpenses={canAccessExpenses}
       canManageMaterials={canAccessMaterials}
-      canUseAiInvoices={shouldLoadAiInvoices}
+      canUseAiInvoicesRole={canAccessAiInvoices}
+      aiInvoicesFeatureAvailable={aiInvoicesFeatureAvailable}
       expensesFeatureAvailable={expensesFeatureAvailable}
       materialsFeatureAvailable={materialsFeatureAvailable}
-      invoiceDocuments={invoiceDocuments}
-      invoiceSummary={getInvoiceSummary(invoiceDocuments)}
       allocationPreview={Object.fromEntries(allocationEntries)}
       initialSection={initialSection}
     />

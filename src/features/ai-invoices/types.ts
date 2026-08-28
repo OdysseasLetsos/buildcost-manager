@@ -94,6 +94,7 @@ export type InvoiceActionState = {
   message?: string;
   documentId?: string;
   reviewId?: string;
+  extractedInvoice?: ExtractedInvoicePayload;
   fieldErrors?: Partial<Record<string, string>>;
 };
 

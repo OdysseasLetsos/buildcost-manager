@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import type { ExtractedInvoicePayload } from "@/src/features/ai-invoices/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
 import { createSupplier } from "../actions/create-supplier";
@@ -12,6 +13,7 @@ import type {
   SupplierActionState,
 } from "../types";
 import { initialMaterialActionState } from "../types";
+import { MaterialInvoiceAiAssist } from "./MaterialInvoiceAiAssist";
 
 type MaterialFormAction = (
   previousState: MaterialActionState,
@@ -58,6 +60,8 @@ export function MaterialForm({
   projects,
   suppliers,
   canCreateSuppliers,
+  canUseAiInvoicesRole,
+  aiInvoicesFeatureAvailable,
   defaultMonthId,
   submitLabel,
   onSuccess,
@@ -68,6 +72,8 @@ export function MaterialForm({
   projects: Project[];
   suppliers: Supplier[];
   canCreateSuppliers: boolean;
+  canUseAiInvoicesRole: boolean;
+  aiInvoicesFeatureAvailable: boolean;
   defaultMonthId: string;
   submitLabel: string;
   onSuccess?: () => void;
@@ -96,6 +102,9 @@ export function MaterialForm({
     : null;
   const [invoiceDate, setInvoiceDate] = useState(
     material?.invoice_date ?? selectedMonthBounds?.min ?? "",
+  );
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    material?.project_id ?? "",
   );
   const [selectedSupplierId, setSelectedSupplierId] = useState(
     initialSupplier?.id ?? "",
@@ -127,6 +136,11 @@ export function MaterialForm({
   const [isUpdatingSupplier, setIsUpdatingSupplier] = useState(false);
   const [netAmount, setNetAmount] = useState(decimalValue(material?.net_amount));
   const [vatAmount, setVatAmount] = useState(decimalValue(material?.vat_amount));
+  const [invoiceNumber, setInvoiceNumber] = useState(
+    material?.invoice_number ?? "",
+  );
+  const [description, setDescription] = useState(material?.description ?? "");
+  const [notes, setNotes] = useState(material?.notes ?? "");
   const [isVatManuallyOverridden, setIsVatManuallyOverridden] = useState(() => {
     if (!material) return false;
 
@@ -310,6 +324,70 @@ export function MaterialForm({
     setPaymentStatus("partial");
   }
 
+  function handleApplyInvoiceExtraction(payload: ExtractedInvoicePayload) {
+    if (payload.invoice_date) {
+      const extractedMonthKey = payload.invoice_date.slice(0, 7);
+      const matchingMonth = monthlyPeriods.find(
+        (period) => period.month_key === extractedMonthKey,
+      );
+
+      if (matchingMonth) {
+        setSelectedMonthId(matchingMonth.id);
+      }
+
+      setInvoiceDate(payload.invoice_date);
+    }
+
+    if (payload.project_suggestion_id) {
+      const matchingProject = projects.find(
+        (project) => project.id === payload.project_suggestion_id,
+      );
+
+      if (matchingProject) {
+        setSelectedProjectId(matchingProject.id);
+      }
+    }
+
+    if (payload.supplier_vat) {
+      const matchingSupplier =
+        availableSuppliers.find(
+          (supplier) =>
+            supplier.tax_id.trim() === payload.supplier_vat?.trim(),
+        ) ?? null;
+
+      if (matchingSupplier) {
+        selectSupplier(matchingSupplier);
+      } else {
+        setSelectedSupplierId("");
+        setSupplierName(payload.supplier_name ?? "");
+        setSupplierVat(payload.supplier_vat);
+      }
+    } else if (payload.supplier_name) {
+      setSelectedSupplierId("");
+      setSupplierName(payload.supplier_name);
+      setSupplierVat("");
+    }
+
+    setInvoiceNumber(payload.invoice_number ?? "");
+    setNetAmount(formatAmount(payload.net_amount));
+    setVatAmount(formatAmount(payload.vat_amount));
+    setIsVatManuallyOverridden(true);
+    setPaidAmount("0");
+    setPaymentStatus("pending");
+
+    const extractedDescriptions = payload.line_items
+      .map((item) =>
+        typeof item.description === "string" ? item.description : null,
+      )
+      .filter((item): item is string => Boolean(item));
+
+    if (extractedDescriptions.length > 0) {
+      setDescription(extractedDescriptions.join("\n"));
+    } else if (payload.category_suggestion) {
+      setDescription(payload.category_suggestion);
+    }
+  }
+
   return (
     <form action={formAction} className="grid gap-4">
       {material ? <input type="hidden" name="id" value={material.id} /> : null}
@@ -328,6 +406,14 @@ export function MaterialForm({
           {state.message}
         </p>
       ) : null}
+
+      <MaterialInvoiceAiAssist
+        roleAllowed={canUseAiInvoicesRole}
+        featureAvailable={aiInvoicesFeatureAvailable}
+        selectedMonthKey={selectedMonth?.month_key ?? ""}
+        suppliers={availableSuppliers}
+        onApplyExtraction={handleApplyInvoiceExtraction}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
@@ -364,7 +450,8 @@ export function MaterialForm({
           Έργο
           <select
             name="projectId"
-            defaultValue={material?.project_id ?? ""}
+            value={selectedProjectId}
+            onChange={(event) => setSelectedProjectId(event.target.value)}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           >
@@ -638,7 +725,8 @@ export function MaterialForm({
           Αριθμός Τιμολογίου
           <input
             name="invoiceNumber"
-            defaultValue={material?.invoice_number ?? ""}
+            value={invoiceNumber}
+            onChange={(event) => setInvoiceNumber(event.target.value)}
             required
             className="rounded-lg border border-slate-300 px-3 py-2"
           />
@@ -758,7 +846,8 @@ export function MaterialForm({
         Περιγραφή
         <textarea
           name="description"
-          defaultValue={material?.description ?? ""}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
           rows={3}
           className="rounded-lg border border-slate-300 px-3 py-2"
         />
@@ -767,7 +856,8 @@ export function MaterialForm({
         Σημειώσεις
         <textarea
           name="notes"
-          defaultValue={material?.notes ?? ""}
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
           rows={3}
           className="rounded-lg border border-slate-300 px-3 py-2"
         />
