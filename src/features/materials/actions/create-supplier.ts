@@ -6,6 +6,7 @@ import { requireFeature } from "@/src/core/entitlements";
 import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany, requireCompanyMember } from "@/src/core/tenants";
 import { createClient } from "@/src/integrations/supabase/server";
+import { normalizeVat } from "@/src/shared/utils/normalize-vat";
 import { supplierInputSchema } from "../supplier-validators";
 import type { Supplier, SupplierActionState } from "../types";
 
@@ -55,8 +56,7 @@ export async function createSupplier(formData: FormData): Promise<SupplierAction
     .from("suppliers")
     .select("*")
     .eq("company_id", companyId)
-    .eq("tax_id", input.taxId)
-    .maybeSingle();
+    .eq("active", true);
 
   if (existingResult.error) {
     console.error("[materials:createSupplier:existing] Supabase error", {
@@ -71,11 +71,16 @@ export async function createSupplier(formData: FormData): Promise<SupplierAction
     };
   }
 
-  if (existingResult.data) {
+  const normalizedInputTaxId = normalizeVat(input.taxId);
+  const existingSupplier = ((existingResult.data ?? []) as Supplier[]).find(
+    (supplier) => normalizeVat(supplier.tax_id) === normalizedInputTaxId,
+  );
+
+  if (existingSupplier) {
     return {
       ok: false,
       message: "Υπάρχει ήδη προμηθευτής με αυτό το ΑΦΜ.",
-      existingSupplier: existingResult.data as Supplier,
+      existingSupplier,
     };
   }
 

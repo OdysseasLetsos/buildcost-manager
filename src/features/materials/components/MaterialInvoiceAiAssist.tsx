@@ -8,12 +8,17 @@ import {
 } from "@/src/features/ai-invoices/actions/review-invoice";
 import { runInvoiceExtraction } from "@/src/features/ai-invoices/actions/run-invoice-extraction";
 import { uploadInvoiceDocument } from "@/src/features/ai-invoices/actions/upload-invoice-document";
+import {
+  findProjectSuggestionForExtractedInvoice,
+  findSupplierSuggestionForExtractedInvoice,
+} from "@/src/features/ai-invoices/services/invoice-review-suggestions";
 import type {
   ExtractedInvoicePayload,
   InvoiceDocumentListItem,
 } from "@/src/features/ai-invoices/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
+import { normalizeVat } from "@/src/shared/utils/normalize-vat";
 import type { Supplier } from "../types";
 
 const supportedMimeTypes = [
@@ -40,6 +45,13 @@ const reviewStatusLabels: Record<string, string> = {
   corrected: "Διορθωμένο",
   approved: "Εγκρίθηκε",
   rejected: "Απορρίφθηκε",
+};
+
+const projectStatusLabels: Record<string, string> = {
+  active: "Προσφορά",
+  in_progress: "Σε εξέλιξη",
+  completed: "Ολοκληρωμένο",
+  archived: "Ακυρωμένο",
 };
 
 type ReviewDraft = {
@@ -80,6 +92,11 @@ type MaterialInvoiceAiAssistProps = {
   projects: Project[];
   suppliers: Supplier[];
   reviewItems: InvoiceDocumentListItem[];
+  selectedProjectId?: string;
+  onRequestCreateSupplierFromInvoice?: (input: {
+    name: string;
+    taxId: string;
+  }) => void;
   onApplyExtraction: (payload: ExtractedInvoicePayload) => void;
 };
 
@@ -128,23 +145,15 @@ function getDefaultMonthId(
 function buildDraft(
   document: InvoiceDocumentListItem,
   monthlyPeriods: MonthlyPeriod[],
-  projects: Project[],
-  suppliers: Supplier[],
   selectedMonthKey: string,
 ): ReviewDraft {
   const extracted = document.extractedInvoice;
   const supplierVat = extracted?.supplier_vat?.trim() ?? "";
-  const matchedSupplier =
-    suppliers.find((supplier) => supplier.tax_id.trim() === supplierVat) ?? null;
   const targetType =
     extracted?.target_type_suggestion === "expense" ||
     extracted?.target_type_suggestion === "revenue"
       ? extracted.target_type_suggestion
       : "material";
-  const projectId =
-    projects.some((project) => project.id === extracted?.project_suggestion_id)
-      ? extracted?.project_suggestion_id ?? ""
-      : "";
   const extractedDescription =
     lineItemDescription(extracted) || extracted?.category_suggestion || "";
 
@@ -155,9 +164,9 @@ function buildDraft(
       selectedMonthKey,
       extracted?.invoice_date,
     ),
-    projectId,
-    supplierId: matchedSupplier?.id ?? "",
-    supplierName: extracted?.supplier_name ?? matchedSupplier?.name ?? "",
+    projectId: "",
+    supplierId: "",
+    supplierName: extracted?.supplier_name ?? "",
     supplierVat,
     invoiceNumber: extracted?.invoice_number ?? "",
     invoiceDate: extracted?.invoice_date ?? "",
@@ -171,10 +180,7 @@ function buildDraft(
     expenseCategory: "other",
     expenseSubtype: "",
     allocationMethod: "by_project_hours",
-    clientName:
-      projects.find((project) => project.id === projectId)?.client_name ??
-      extracted?.supplier_name ??
-      "",
+    clientName: extracted?.supplier_name ?? "",
     revenueType: "invoice",
     paymentMethod: "bank",
     status: "pending",
@@ -224,6 +230,8 @@ export function MaterialInvoiceAiAssist({
   projects,
   suppliers,
   reviewItems,
+  selectedProjectId,
+  onRequestCreateSupplierFromInvoice,
   onApplyExtraction,
 }: Readonly<MaterialInvoiceAiAssistProps>) {
   const [file, setFile] = useState<File | null>(null);
@@ -259,12 +267,21 @@ export function MaterialInvoiceAiAssist({
         (warning): warning is string => typeof warning === "string",
       )
     : [];
+  const supplierSuggestion = findSupplierSuggestionForExtractedInvoice(
+    openedReview?.extractedInvoice ?? null,
+    suppliers,
+  );
+  const projectSuggestion = findProjectSuggestionForExtractedInvoice(
+    openedReview?.extractedInvoice ?? null,
+    projects,
+    selectedProjectId,
+  );
   const selectedProject = projects.find(
     (project) => project.id === draft?.projectId,
   );
-  const supplierVat = draft?.supplierVat.trim();
+  const supplierVat = normalizeVat(draft?.supplierVat);
   const matchedSupplierByVat = supplierVat
-    ? suppliers.some((supplier) => supplier.tax_id.trim() === supplierVat)
+    ? suppliers.some((supplier) => normalizeVat(supplier.tax_id) === supplierVat)
     : true;
 
   if (!roleAllowed) {
@@ -354,9 +371,11 @@ export function MaterialInvoiceAiAssist({
     }
 
     onApplyExtraction(result.extractedInvoice);
-    const extractedSupplierVat = result.extractedInvoice.supplier_vat?.trim();
+    const extractedSupplierVat = normalizeVat(result.extractedInvoice.supplier_vat);
     const matchedSupplier = extractedSupplierVat
-      ? suppliers.some((supplier) => supplier.tax_id.trim() === extractedSupplierVat)
+      ? suppliers.some(
+          (supplier) => normalizeVat(supplier.tax_id) === extractedSupplierVat,
+        )
       : true;
     setWarnings(
       [
@@ -376,10 +395,88 @@ export function MaterialInvoiceAiAssist({
   function openReview(document: InvoiceDocumentListItem) {
     setOpenedReviewId(document.reviewQueueItem?.id ?? null);
     setDraft(
-      buildDraft(document, monthlyPeriods, projects, suppliers, selectedMonthKey),
+      buildDraft(document, monthlyPeriods, selectedMonthKey),
     );
     setMessage(null);
     setWarnings([]);
+  }
+
+  function handleUseSupplierSuggestion() {
+    if (
+      supplierSuggestion.type === "not_found" ||
+      !supplierSuggestion.supplierId
+    ) {
+      return;
+    }
+
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            supplierId: supplierSuggestion.supplierId,
+            supplierName: supplierSuggestion.supplierName,
+            supplierVat: supplierSuggestion.supplierVat,
+          }
+        : current,
+    );
+    setMessage(
+      "Η πρόταση εφαρμόστηκε στη φόρμα. Μπορείτε να αλλάξετε την επιλογή χειροκίνητα.",
+    );
+    setMessageTone("success");
+  }
+
+  function handleCreateSupplierFromInvoice() {
+    if (!draft) return;
+
+    const existingSupplier = suppliers.find(
+      (supplier) => normalizeVat(supplier.tax_id) === normalizeVat(draft.supplierVat),
+    );
+
+    if (existingSupplier) {
+      setDraft((current) =>
+        current
+          ? {
+              ...current,
+              supplierId: existingSupplier.id,
+              supplierName: existingSupplier.name,
+              supplierVat: existingSupplier.tax_id,
+            }
+          : current,
+      );
+      setMessage("Υπάρχει ήδη προμηθευτής με αυτό το ΑΦΜ.");
+      setMessageTone("error");
+      return;
+    }
+
+    onRequestCreateSupplierFromInvoice?.({
+      name: draft.supplierName,
+      taxId: draft.supplierVat,
+    });
+    setMessage(
+      "Δημιουργία νέου προμηθευτή από τα στοιχεία του τιμολογίου. Αποθηκεύστε τον προμηθευτή και μετά επιλέξτε τον στη φόρμα.",
+    );
+    setMessageTone("info");
+  }
+
+  function handleUseProjectSuggestion() {
+    if (projectSuggestion.type === "not_found" || !projectSuggestion.projectId) {
+      return;
+    }
+
+    const project = projects.find((item) => item.id === projectSuggestion.projectId);
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            projectId: projectSuggestion.projectId,
+            clientName: project?.client_name ?? current.clientName,
+          }
+        : current,
+    );
+    setMessage(
+      "Η πρόταση εφαρμόστηκε στη φόρμα. Μπορείτε να αλλάξετε την επιλογή χειροκίνητα.",
+    );
+    setMessageTone("success");
   }
 
   async function handleSaveCorrections() {
@@ -699,6 +796,35 @@ export function MaterialInvoiceAiAssist({
                 </span>
               ) : null}
             </label>
+            <section className="rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-sm md:col-span-2">
+              {projectSuggestion.type === "not_found" ? (
+                <p className="font-medium text-slate-700">
+                  Επιλέξτε έργο χειροκίνητα
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-blue-950">Πιθανό έργο</p>
+                    <p className="mt-1 text-slate-700">
+                      {projectSuggestion.projectCode} -{" "}
+                      {projectSuggestion.projectName}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Κατάσταση:{" "}
+                      {projectStatusLabels[projectSuggestion.projectStatus] ??
+                        projectSuggestion.projectStatus}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleUseProjectSuggestion}
+                    className="rounded-lg bg-blue-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-900"
+                  >
+                    Χρήση αυτού του έργου
+                  </button>
+                </div>
+              )}
+            </section>
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
               Προμηθευτής
               <select
@@ -733,6 +859,58 @@ export function MaterialInvoiceAiAssist({
                 </span>
               ) : null}
             </label>
+            <section className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-sm md:col-span-2">
+              {supplierSuggestion.type === "not_found" ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-800">
+                      Δεν βρέθηκε υπάρχων προμηθευτής με αυτό το ΑΦΜ.
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Επιλέξτε προμηθευτή χειροκίνητα ή δημιουργήστε νέο
+                      προμηθευτή με ρητή αποθήκευση.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCreateSupplierFromInvoice}
+                    className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-50"
+                  >
+                    Δημιουργία νέου προμηθευτή από τα στοιχεία του τιμολογίου.
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-emerald-950">
+                      Βρέθηκε υπάρχων προμηθευτής
+                    </p>
+                    <p className="mt-1 text-slate-700">
+                      {supplierSuggestion.supplierName}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      ΑΦΜ: {supplierSuggestion.supplierVat}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleUseSupplierSuggestion}
+                      className="rounded-lg bg-blue-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-900"
+                    >
+                      Χρήση αυτού
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateSupplierFromInvoice}
+                      className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-50"
+                    >
+                      Δημιουργία νέου
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
               Προμηθευτής / Πελάτης
               <input
