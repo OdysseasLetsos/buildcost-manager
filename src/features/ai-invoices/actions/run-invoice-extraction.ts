@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/src/core/audit";
 import { createClient } from "@/src/integrations/supabase/server";
 import type { Json } from "@/src/integrations/supabase/types";
-import { extractInvoice } from "../extraction/extract-invoice";
+import { extractInvoiceWithMock } from "../extraction/mock";
 import type {
   ExtractedInvoicePayload,
   InvoiceActionState,
@@ -15,6 +15,7 @@ import { requireAiInvoiceAccess } from "../services/require-ai-invoice-access";
 
 async function addDuplicateWarning(
   companyId: string,
+  documentId: string,
   payload: ExtractedInvoicePayload,
 ): Promise<ExtractedInvoicePayload> {
   if (!payload.supplier_vat || !payload.invoice_number) {
@@ -27,7 +28,8 @@ async function addDuplicateWarning(
     .select("id", { count: "exact", head: true })
     .eq("company_id", companyId)
     .eq("supplier_vat", payload.supplier_vat)
-    .eq("invoice_number", payload.invoice_number);
+    .eq("invoice_number", payload.invoice_number)
+    .neq("invoice_document_id", documentId);
 
   if (error) {
     console.error("[ai-invoices:extract:duplicate] Supabase error", {
@@ -112,38 +114,77 @@ export async function runInvoiceExtraction(
   }
 
   try {
-    const extracted = await extractInvoice(invoiceDocument);
+    const extracted = await extractInvoiceWithMock(invoiceDocument);
     const parsed = extractedInvoicePayloadSchema.safeParse(extracted);
 
     if (!parsed.success) {
       throw new Error("Η απάντηση της ανάλυσης δεν έχει έγκυρη μορφή.");
     }
 
-    const payload = await addDuplicateWarning(context.companyId, parsed.data);
-    const { data: extractedInvoice, error: extractedError } = await supabase
-      .from("extracted_invoices")
-      .insert({
-        company_id: context.companyId,
-        invoice_document_id: invoiceDocument.id,
-        supplier_name: payload.supplier_name,
-        supplier_vat: payload.supplier_vat,
-        invoice_number: payload.invoice_number,
-        invoice_date: payload.invoice_date,
-        net_amount: payload.net_amount,
-        vat_amount: payload.vat_amount,
-        total_amount: payload.total_amount,
-        currency: payload.currency,
-        target_type_suggestion: payload.target_type_suggestion,
-        category_suggestion: payload.category_suggestion,
-        project_suggestion_id: payload.project_suggestion_id,
-        confidence_score: payload.confidence_score,
-        line_items: payload.line_items as Json,
-        warnings: payload.warnings as Json,
-        raw_extraction: (payload.raw_extraction ?? payload) as Json,
-        extraction_mode: "mock",
-      })
-      .select("id")
-      .single();
+    const payload = await addDuplicateWarning(
+      context.companyId,
+      invoiceDocument.id,
+      parsed.data,
+    );
+    const extractedInvoiceMutableValues = {
+      supplier_name: payload.supplier_name,
+      supplier_vat: payload.supplier_vat,
+      invoice_number: payload.invoice_number,
+      invoice_date: payload.invoice_date,
+      net_amount: payload.net_amount,
+      vat_amount: payload.vat_amount,
+      total_amount: payload.total_amount,
+      currency: payload.currency,
+      target_type_suggestion: payload.target_type_suggestion,
+      category_suggestion: payload.category_suggestion,
+      project_suggestion_id: payload.project_suggestion_id,
+      confidence_score: payload.confidence_score,
+      line_items: payload.line_items as Json,
+      warnings: payload.warnings as Json,
+      raw_extraction: (payload.raw_extraction ?? payload) as Json,
+      extraction_mode: "mock",
+    };
+    const { data: existingExtractedInvoice, error: existingExtractedError } =
+      await supabase
+        .from("extracted_invoices")
+        .select("id")
+        .eq("company_id", context.companyId)
+        .eq("invoice_document_id", invoiceDocument.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (existingExtractedError) {
+      console.error("[ai-invoices:extract:existing] Supabase error", {
+        message: existingExtractedError.message,
+        code: existingExtractedError.code,
+        details: existingExtractedError.details,
+        hint: existingExtractedError.hint,
+      });
+      throw new Error("Δεν ήταν δυνατή η ανάλυση του τιμολογίου.");
+    }
+
+    const extractedInvoiceResult = existingExtractedInvoice
+      ? await supabase
+          .from("extracted_invoices")
+          .update(extractedInvoiceMutableValues)
+          .eq("company_id", context.companyId)
+          .eq("id", existingExtractedInvoice.id)
+          .select("id")
+          .single()
+      : await supabase
+          .from("extracted_invoices")
+          .insert({
+            company_id: context.companyId,
+            invoice_document_id: invoiceDocument.id,
+            ...extractedInvoiceMutableValues,
+          })
+          .select("id")
+          .single();
+    const {
+      data: extractedInvoice,
+      error: extractedError,
+    } = extractedInvoiceResult;
 
     if (extractedError || !extractedInvoice) {
       console.error("[ai-invoices:extract:insert] Supabase error", {
@@ -155,16 +196,47 @@ export async function runInvoiceExtraction(
       throw new Error("Δεν ήταν δυνατή η ανάλυση του τιμολογίου.");
     }
 
-    const { data: reviewItem, error: reviewError } = await supabase
-      .from("invoice_review_queue")
-      .insert({
-        company_id: context.companyId,
-        invoice_document_id: invoiceDocument.id,
-        extracted_invoice_id: extractedInvoice.id,
-        status: "pending_review",
-      })
-      .select("id")
-      .single();
+    const { data: existingReviewItem, error: existingReviewError } =
+      await supabase
+        .from("invoice_review_queue")
+        .select("id")
+        .eq("company_id", context.companyId)
+        .eq("invoice_document_id", invoiceDocument.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (existingReviewError) {
+      console.error("[ai-invoices:extract:existingReview] Supabase error", {
+        message: existingReviewError.message,
+        code: existingReviewError.code,
+        details: existingReviewError.details,
+        hint: existingReviewError.hint,
+      });
+      throw new Error("Δεν ήταν δυνατή η δημιουργία εγγραφής ελέγχου.");
+    }
+
+    const reviewResult = existingReviewItem
+      ? await supabase
+          .from("invoice_review_queue")
+          .update({
+            status: "pending_review",
+          })
+          .eq("company_id", context.companyId)
+          .eq("id", existingReviewItem.id)
+          .select("id")
+          .single()
+      : await supabase
+          .from("invoice_review_queue")
+          .insert({
+            company_id: context.companyId,
+            invoice_document_id: invoiceDocument.id,
+            extracted_invoice_id: extractedInvoice.id,
+            status: "pending_review",
+          })
+          .select("id")
+          .single();
+    const { data: reviewItem, error: reviewError } = reviewResult;
 
     if (reviewError || !reviewItem) {
       console.error("[ai-invoices:extract:review] Supabase error", {
@@ -210,8 +282,9 @@ export async function runInvoiceExtraction(
 
     return {
       ok: true,
-      message: "Η ανάλυση mock ολοκληρώθηκε επιτυχώς. Το τιμολόγιο στάλθηκε για έλεγχο.",
+      message: "Η φόρμα προσυμπληρώθηκε από την AI ανάλυση.",
       reviewId: reviewItem.id,
+      extractedInvoice: payload,
     };
   } catch (error) {
     const message =

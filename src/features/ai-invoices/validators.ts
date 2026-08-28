@@ -12,7 +12,7 @@ export const acceptedInvoiceMimeTypes = [
   "image/webp",
 ] as const;
 
-export const maxInvoiceFileSizeBytes = 20 * 1024 * 1024;
+export const maxInvoiceFileSizeBytes = 10 * 1024 * 1024;
 
 export const selectedMonthKeySchema = z
   .string()
@@ -53,7 +53,7 @@ export function validateInvoiceFile(file: File): string | null {
   }
 
   if (file.size > maxInvoiceFileSizeBytes) {
-    return "Το αρχείο είναι πολύ μεγάλο.";
+    return "Το αρχείο είναι πολύ μεγάλο. Μέγιστο μέγεθος: 10MB.";
   }
 
   if (file.size <= 0) {

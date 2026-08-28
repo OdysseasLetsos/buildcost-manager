@@ -2,11 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AiInvoicesPanel } from "@/src/features/ai-invoices/components/AiInvoicesPanel";
-import type {
-  InvoiceDocumentListItem,
-  InvoiceSummary,
-} from "@/src/features/ai-invoices/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
 import { createMaterial } from "../actions/create-material";
@@ -52,11 +47,10 @@ export function MaterialsPageClient({
   projects,
   canManage,
   canCreateSuppliers,
-  canUseAiInvoices,
+  canUseAiInvoicesRole,
+  aiInvoicesFeatureAvailable,
   featureAvailable,
   defaultMonthId,
-  invoiceDocuments,
-  invoiceSummary,
 }: Readonly<{
   materials: MaterialWithRelations[];
   suppliers: Supplier[];
@@ -64,11 +58,10 @@ export function MaterialsPageClient({
   projects: Project[];
   canManage: boolean;
   canCreateSuppliers: boolean;
-  canUseAiInvoices: boolean;
+  canUseAiInvoicesRole: boolean;
+  aiInvoicesFeatureAvailable: boolean;
   featureAvailable: boolean;
   defaultMonthId: string;
-  invoiceDocuments: InvoiceDocumentListItem[];
-  invoiceSummary: InvoiceSummary;
 }>) {
   const router = useRouter();
   const [monthId, setMonthId] = useState(defaultMonthId);
@@ -111,8 +104,6 @@ export function MaterialsPageClient({
   );
   const activeProjects = projects.filter((project) => project.status !== "archived");
   const canMutate = canManage && featureAvailable && !selectedMonthLocked;
-  const defaultMonthKey =
-    selectedMonth?.month_key ?? monthlyPeriods[0]?.month_key ?? "";
 
   function handleSuccess() {
     setShowCreateForm(false);
@@ -176,24 +167,18 @@ export function MaterialsPageClient({
 
       <MaterialsSummaryCards summary={summary} />
 
-      {canUseAiInvoices ? (
-        <AiInvoicesPanel
-          documents={invoiceDocuments}
-          summary={invoiceSummary}
-          monthlyPeriods={monthlyPeriods}
-          defaultMonthKey={defaultMonthKey}
-        />
-      ) : null}
-
       {(showCreateForm || editingMaterial) && canMutate ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <MaterialForm
+            key={editingMaterial?.id ?? "new-material"}
             action={editingMaterial ? updateMaterial : createMaterial}
             material={editingMaterial ?? undefined}
             monthlyPeriods={openMonthlyPeriods}
             projects={activeProjects}
             suppliers={suppliers}
             canCreateSuppliers={canCreateSuppliers}
+            canUseAiInvoicesRole={canUseAiInvoicesRole}
+            aiInvoicesFeatureAvailable={aiInvoicesFeatureAvailable}
             defaultMonthId={effectiveMonthId}
             submitLabel={editingMaterial ? "Αποθήκευση Αλλαγών" : "Δημιουργία Τιμολογίου"}
             onSuccess={handleSuccess}
