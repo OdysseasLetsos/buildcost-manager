@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { InvoiceDocumentListItem } from "@/src/features/ai-invoices/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
 import { createMaterial } from "../actions/create-material";
@@ -45,6 +46,7 @@ export function MaterialsPageClient({
   suppliers,
   monthlyPeriods,
   projects,
+  invoiceReviewItems,
   canManage,
   canCreateSuppliers,
   canUseAiInvoicesRole,
@@ -56,6 +58,7 @@ export function MaterialsPageClient({
   suppliers: Supplier[];
   monthlyPeriods: MonthlyPeriod[];
   projects: Project[];
+  invoiceReviewItems: InvoiceDocumentListItem[];
   canManage: boolean;
   canCreateSuppliers: boolean;
   canUseAiInvoicesRole: boolean;
@@ -176,6 +179,7 @@ export function MaterialsPageClient({
             monthlyPeriods={openMonthlyPeriods}
             projects={activeProjects}
             suppliers={suppliers}
+            invoiceReviewItems={invoiceReviewItems}
             canCreateSuppliers={canCreateSuppliers}
             canUseAiInvoicesRole={canUseAiInvoicesRole}
             aiInvoicesFeatureAvailable={aiInvoicesFeatureAvailable}
