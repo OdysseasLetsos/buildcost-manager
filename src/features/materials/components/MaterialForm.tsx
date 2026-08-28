@@ -393,6 +393,19 @@ export function MaterialForm({
     }
   }
 
+  function handleRequestCreateSupplierFromInvoice(input: {
+    name: string;
+    taxId: string;
+  }) {
+    setSupplierState({ ok: false });
+    setNewSupplierFields((current) => ({
+      ...current,
+      name: input.name,
+      taxId: input.taxId,
+    }));
+    setShowNewSupplierForm(true);
+  }
+
   return (
     <form action={formAction} className="grid gap-4">
       {material ? <input type="hidden" name="id" value={material.id} /> : null}
@@ -420,6 +433,8 @@ export function MaterialForm({
         projects={projects}
         suppliers={availableSuppliers}
         reviewItems={invoiceReviewItems}
+        selectedProjectId={selectedProjectId}
+        onRequestCreateSupplierFromInvoice={handleRequestCreateSupplierFromInvoice}
         onApplyExtraction={handleApplyInvoiceExtraction}
       />
 
