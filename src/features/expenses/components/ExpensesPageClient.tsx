@@ -3,6 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MaterialsPageClient } from "@/src/features/materials/components/MaterialsPageClient";
+import type {
+  InvoiceDocumentListItem,
+  InvoiceSummary,
+} from "@/src/features/ai-invoices/types";
 import type { MaterialWithRelations, Supplier } from "@/src/features/materials/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
@@ -99,8 +103,11 @@ export function ExpensesPageClient({
   defaultMonthId,
   canManageExpenses,
   canManageMaterials,
+  canUseAiInvoices,
   expensesFeatureAvailable,
   materialsFeatureAvailable,
+  invoiceDocuments,
+  invoiceSummary,
   allocationPreview,
   initialSection,
 }: Readonly<{
@@ -114,8 +121,11 @@ export function ExpensesPageClient({
   defaultMonthId: string;
   canManageExpenses: boolean;
   canManageMaterials: boolean;
+  canUseAiInvoices: boolean;
   expensesFeatureAvailable: boolean;
   materialsFeatureAvailable: boolean;
+  invoiceDocuments: InvoiceDocumentListItem[];
+  invoiceSummary: InvoiceSummary;
   allocationPreview: Record<string, ExpenseAllocationPreviewData>;
   initialSection?: "materials";
 }>) {
@@ -235,8 +245,11 @@ export function ExpensesPageClient({
           projects={projects}
           canManage={canManageMaterials}
           canCreateSuppliers={canManageExpenses}
+          canUseAiInvoices={canUseAiInvoices}
           featureAvailable={materialsFeatureAvailable}
           defaultMonthId={defaultMonthId}
+          invoiceDocuments={invoiceDocuments}
+          invoiceSummary={invoiceSummary}
         />
       ) : null}
 

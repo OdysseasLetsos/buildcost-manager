@@ -561,6 +561,154 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      extracted_invoices: {
+        Row: {
+          id: string;
+          company_id: string;
+          invoice_document_id: string;
+          supplier_name: string | null;
+          supplier_vat: string | null;
+          invoice_number: string | null;
+          invoice_date: string | null;
+          net_amount: number | null;
+          vat_amount: number | null;
+          total_amount: number | null;
+          currency: string;
+          target_type_suggestion: string;
+          category_suggestion: string | null;
+          project_suggestion_id: string | null;
+          confidence_score: number | null;
+          line_items: Json;
+          warnings: Json;
+          raw_extraction: Json;
+          extraction_mode: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          invoice_document_id: string;
+          supplier_name?: string | null;
+          supplier_vat?: string | null;
+          invoice_number?: string | null;
+          invoice_date?: string | null;
+          net_amount?: number | null;
+          vat_amount?: number | null;
+          total_amount?: number | null;
+          currency?: string;
+          target_type_suggestion?: string;
+          category_suggestion?: string | null;
+          project_suggestion_id?: string | null;
+          confidence_score?: number | null;
+          line_items?: Json;
+          warnings?: Json;
+          raw_extraction?: Json;
+          extraction_mode?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          supplier_name?: string | null;
+          supplier_vat?: string | null;
+          invoice_number?: string | null;
+          invoice_date?: string | null;
+          net_amount?: number | null;
+          vat_amount?: number | null;
+          total_amount?: number | null;
+          currency?: string;
+          target_type_suggestion?: string;
+          category_suggestion?: string | null;
+          project_suggestion_id?: string | null;
+          confidence_score?: number | null;
+          line_items?: Json;
+          warnings?: Json;
+          raw_extraction?: Json;
+          extraction_mode?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      invoice_documents: {
+        Row: {
+          id: string;
+          company_id: string;
+          uploaded_by: string;
+          storage_bucket: string;
+          storage_path: string;
+          original_file_name: string;
+          mime_type: string;
+          file_size_bytes: number | null;
+          status: string;
+          selected_month_key: string | null;
+          project_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          uploaded_by: string;
+          storage_bucket?: string;
+          storage_path: string;
+          original_file_name: string;
+          mime_type: string;
+          file_size_bytes?: number | null;
+          status?: string;
+          selected_month_key?: string | null;
+          project_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          storage_path?: string;
+          original_file_name?: string;
+          mime_type?: string;
+          file_size_bytes?: number | null;
+          status?: string;
+          selected_month_key?: string | null;
+          project_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      invoice_review_queue: {
+        Row: {
+          id: string;
+          company_id: string;
+          invoice_document_id: string;
+          extracted_invoice_id: string;
+          status: string;
+          assigned_to: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          invoice_document_id: string;
+          extracted_invoice_id: string;
+          status?: string;
+          assigned_to?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: string;
+          assigned_to?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       monthly_periods: {
         Row: {
           id: string;
