@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
-import type { ExtractedInvoicePayload } from "@/src/features/ai-invoices/types";
+import type {
+  ExtractedInvoicePayload,
+  InvoiceDocumentListItem,
+} from "@/src/features/ai-invoices/types";
 import type { MonthlyPeriod } from "@/src/features/monthly-periods/types";
 import type { Project } from "@/src/features/projects/types";
 import { createSupplier } from "../actions/create-supplier";
@@ -59,6 +62,7 @@ export function MaterialForm({
   monthlyPeriods,
   projects,
   suppliers,
+  invoiceReviewItems,
   canCreateSuppliers,
   canUseAiInvoicesRole,
   aiInvoicesFeatureAvailable,
@@ -71,6 +75,7 @@ export function MaterialForm({
   monthlyPeriods: MonthlyPeriod[];
   projects: Project[];
   suppliers: Supplier[];
+  invoiceReviewItems: InvoiceDocumentListItem[];
   canCreateSuppliers: boolean;
   canUseAiInvoicesRole: boolean;
   aiInvoicesFeatureAvailable: boolean;
@@ -411,7 +416,10 @@ export function MaterialForm({
         roleAllowed={canUseAiInvoicesRole}
         featureAvailable={aiInvoicesFeatureAvailable}
         selectedMonthKey={selectedMonth?.month_key ?? ""}
+        monthlyPeriods={monthlyPeriods}
+        projects={projects}
         suppliers={availableSuppliers}
+        reviewItems={invoiceReviewItems}
         onApplyExtraction={handleApplyInvoiceExtraction}
       />
 

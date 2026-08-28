@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { canUseFeature } from "@/src/core/entitlements";
 import { requireRole } from "@/src/core/roles";
 import { getCurrentCompany } from "@/src/core/tenants";
+import { listInvoiceDocuments } from "@/src/features/ai-invoices/services/list-invoice-documents";
 import { ExpensesPageClient } from "@/src/features/expenses/components/ExpensesPageClient";
 import { getExpenseAllocationPreview } from "@/src/features/expenses/services/get-expense-allocation-preview";
 import { getCompanyOffices } from "@/src/features/expenses/services/get-company-offices";
@@ -100,6 +101,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     materials,
     suppliers,
     projects,
+    invoiceReviewItems,
   ] = await Promise.all([
     shouldLoadExpenses ? getExpenses(companyId) : Promise.resolve([]),
     shouldLoadExpenses ? getCompanyOffices(companyId) : Promise.resolve([]),
@@ -118,6 +120,9 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     shouldLoadMaterials ? getMaterials(companyId) : Promise.resolve([]),
     shouldLoadMaterials ? getSuppliers(companyId) : Promise.resolve([]),
     shouldLoadMaterials ? getProjects(companyId) : Promise.resolve([]),
+    shouldLoadMaterials && canAccessAiInvoices && aiInvoicesFeatureAvailable
+      ? listInvoiceDocuments(companyId)
+      : Promise.resolve([]),
   ]);
   const resolvedSearchParams = await searchParams;
   const initialSection =
@@ -131,6 +136,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
       materials={materials}
       suppliers={suppliers}
       projects={projects}
+      invoiceReviewItems={invoiceReviewItems}
       monthlyPeriods={monthlyPeriods}
       defaultMonthId={defaultMonthId}
       canManageExpenses={canAccessExpenses}
