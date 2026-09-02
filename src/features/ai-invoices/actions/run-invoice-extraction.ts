@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/src/core/audit";
 import { createClient } from "@/src/integrations/supabase/server";
 import type { Json } from "@/src/integrations/supabase/types";
-import { extractInvoiceWithMock } from "../extraction/mock";
+import { extractInvoice } from "../extraction/extract-invoice";
 import type {
   ExtractedInvoicePayload,
   InvoiceActionState,
@@ -114,8 +114,8 @@ export async function runInvoiceExtraction(
   }
 
   try {
-    const extracted = await extractInvoiceWithMock(invoiceDocument);
-    const parsed = extractedInvoicePayloadSchema.safeParse(extracted);
+    const extraction = await extractInvoice(invoiceDocument);
+    const parsed = extractedInvoicePayloadSchema.safeParse(extraction.payload);
 
     if (!parsed.success) {
       throw new Error("Η απάντηση της ανάλυσης δεν έχει έγκυρη μορφή.");
@@ -142,7 +142,7 @@ export async function runInvoiceExtraction(
       line_items: payload.line_items as Json,
       warnings: payload.warnings as Json,
       raw_extraction: (payload.raw_extraction ?? payload) as Json,
-      extraction_mode: "mock",
+      extraction_mode: extraction.mode,
     };
     const { data: existingExtractedInvoice, error: existingExtractedError } =
       await supabase
@@ -272,7 +272,7 @@ export async function runInvoiceExtraction(
       metadata: {
         extractedInvoiceId: extractedInvoice.id,
         reviewId: reviewItem.id,
-        extractionMode: "mock",
+        extractionMode: extraction.mode,
       },
     });
 
@@ -311,12 +311,16 @@ export async function runInvoiceExtraction(
       metadata: { message },
     });
 
+    const extractionFailedMessage =
+      message === "Η εξωτερική AI ανάλυση δεν έχει ρυθμιστεί ακόμα." ||
+      message === "Η ρύθμιση της AI ανάλυσης τιμολογίων δεν είναι έγκυρη." ||
+      message === "Η απάντηση της ανάλυσης δεν έχει έγκυρη μορφή."
+        ? message
+        : "Δεν ήταν δυνατή η ανάλυση του τιμολογίου.";
+
     return {
       ok: false,
-      message:
-        message === "Η απάντηση της ανάλυσης δεν έχει έγκυρη μορφή."
-          ? message
-          : "Δεν ήταν δυνατή η ανάλυση του τιμολογίου.",
+      message: extractionFailedMessage,
     };
   }
 }
