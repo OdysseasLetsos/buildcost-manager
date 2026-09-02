@@ -2,6 +2,7 @@ import type {
   ExtractedInvoicePayload,
   InvoiceTargetTypeSuggestion,
 } from "@/src/features/ai-invoices/types";
+import { normalizeExtractionResponse } from "./normalize-extraction-response";
 import type { InvoiceExtractionDocument } from "./types";
 
 function stableNumber(input: string): number {
@@ -32,7 +33,7 @@ export async function extractInvoiceWithMock(
   const vatAmount = Number((netAmount * 0.24).toFixed(2));
   const totalAmount = Number((netAmount + vatAmount).toFixed(2));
 
-  return {
+  return normalizeExtractionResponse({
     supplier_name: "Δοκιμαστικός Προμηθευτής Α.Ε.",
     supplier_vat: "123456789",
     invoice_number: `MOCK-${String(seed % 1000).padStart(3, "0")}`,
@@ -59,5 +60,5 @@ export async function extractInvoiceWithMock(
       document_id: document.id,
       file_name: document.original_file_name,
     },
-  };
+  });
 }

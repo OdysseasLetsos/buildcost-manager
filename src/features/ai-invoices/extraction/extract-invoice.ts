@@ -1,15 +1,23 @@
 import "server-only";
-import { extractionModeSchema } from "../validators";
+import { getInvoiceExtractionConfig } from "./config";
 import { extractInvoiceFromExternalApi } from "./external-api";
 import { extractInvoiceWithMock } from "./mock";
-import type { InvoiceExtractor } from "./types";
+import type { InvoiceExtractionResult, InvoiceExtractor } from "./types";
 
-export const extractInvoice: InvoiceExtractor = async (document) => {
-  const mode = extractionModeSchema.parse(process.env.INVOICE_EXTRACTION_MODE);
+export const extractInvoice: InvoiceExtractor = async (
+  document,
+): Promise<InvoiceExtractionResult> => {
+  const config = getInvoiceExtractionConfig();
 
-  if (mode === "external") {
-    return extractInvoiceFromExternalApi(document);
+  if (config.mode === "external") {
+    return {
+      mode: config.mode,
+      payload: await extractInvoiceFromExternalApi(document, config),
+    };
   }
 
-  return extractInvoiceWithMock(document);
+  return {
+    mode: config.mode,
+    payload: await extractInvoiceWithMock(document),
+  };
 };

@@ -16,4 +16,9 @@ export type InvoiceExtractionDocument = Pick<
 
 export type InvoiceExtractor = (
   document: InvoiceExtractionDocument,
-) => Promise<ExtractedInvoicePayload>;
+) => Promise<InvoiceExtractionResult>;
+
+export type InvoiceExtractionResult = {
+  mode: "mock" | "external";
+  payload: ExtractedInvoicePayload;
+};
